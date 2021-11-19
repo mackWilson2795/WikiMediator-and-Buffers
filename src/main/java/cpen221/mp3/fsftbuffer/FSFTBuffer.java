@@ -1,5 +1,7 @@
 package cpen221.mp3.fsftbuffer;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 public class FSFTBuffer<T extends Bufferable> {
 
     /* the default buffer size is 32 objects */
@@ -7,8 +9,11 @@ public class FSFTBuffer<T extends Bufferable> {
 
     /* the default timeout value is 3600s */
     public static final int DTIMEOUT = 3600;
-
-    /* TODO: Implement this datatype */
+    private HashMap<String, T> lookUpMap;
+    private LinkedList<T> cache;//maybe queue
+    private HashMap<String, Long> timeOutMap;
+    private int capacity;
+    private int timeout;
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -20,7 +25,11 @@ public class FSFTBuffer<T extends Bufferable> {
      *                 be in the buffer before it times out
      */
     public FSFTBuffer(int capacity, int timeout) {
-        // TODO: implement this constructor
+        this.capacity = capacity;
+        this.timeout = timeout;
+        lookUpMap = new HashMap();
+        cache = new LinkedList();
+        timeOutMap = new HashMap();
     }
 
     /**
@@ -36,8 +45,28 @@ public class FSFTBuffer<T extends Bufferable> {
      * object to make room for the new object.
      */
     public boolean put(T t) {
-        // TODO: implement this method
-        return false;
+        clean();
+        if(!lookUpMap.containsKey(t.id())){
+            return false;
+        }
+        if(cache.size() == capacity){
+            lookUpMap.remove(cache.removeLast().id());
+            timeOutMap.remove(t.id());// does this still remove from linked list
+        }
+        cache.addFirst(t);
+        lookUpMap.put(t.id(), t);
+        timeOutMap.put(t.id(), 1000*System.currentTimeMillis() + timeout);
+        return true;
+    }
+
+    private void clean(){
+        for (String id : timeOutMap.keySet()) {
+            long time = 1000*System.currentTimeMillis();
+            if(timeOutMap.get(id) >= time){
+                timeOutMap.remove(id);
+                cache.remove(lookUpMap.remove(id));
+            }
+        }
     }
 
     /**
@@ -45,12 +74,12 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return the object that matches the identifier from the
      * buffer
      */
-    public T get(String id) {
-        /* TODO: change this */
-        /* Do not return null. Throw a suitable checked exception when an object
-            is not in the cache. You can add the checked exception to the method
-            signature. */
-        return null;
+    public T get(String id) throws NotFoundException {
+        clean();
+        if(!lookUpMap.containsKey(id)){
+            throw new NotFoundException("Object is not in the cache!");
+        }
+        return lookUpMap.get(id);
     }
 
     /**
@@ -62,7 +91,12 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return true if successful and false otherwise
      */
     public boolean touch(String id) {
-        /* TODO: Implement this method */
+        clean();
+        if(lookUpMap.containsKey(id)){
+            timeOutMap.remove(id);
+            timeOutMap.put(id, 1000*System.currentTimeMillis() + timeout);
+            return true;
+        }
         return false;
     }
 
@@ -75,7 +109,7 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return true if successful and false otherwise
      */
     public boolean update(T t) {
-        /* TODO: implement this method */
-        return false;
+        String id = t.id();
+        return touch(id);
     }
 }
