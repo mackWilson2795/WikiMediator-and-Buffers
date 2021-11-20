@@ -1,5 +1,6 @@
 package cpen221.mp3.fsftbuffer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 public class FSFTBuffer<T extends Bufferable> {
@@ -14,6 +15,7 @@ public class FSFTBuffer<T extends Bufferable> {
     private HashMap<String, Long> timeOutMap;
     private int capacity;
     private int timeout;
+    private ArrayList<Integer> workingOn;
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -30,6 +32,7 @@ public class FSFTBuffer<T extends Bufferable> {
         lookUpMap = new HashMap();
         cache = new LinkedList();
         timeOutMap = new HashMap();
+        workingOn = new ArrayList<>();
     }
 
     /**
@@ -46,19 +49,25 @@ public class FSFTBuffer<T extends Bufferable> {
      */
     public boolean put(T t) {
         clean();
-        if(!lookUpMap.containsKey(t.id())){
-            return false;
-        }
+        int index; //Todo: make this cleaner with the whole working on thing
+        workingOn.add(cache.size());
+        index = cache.size();
         if(cache.size() == capacity){
-            lookUpMap.remove(cache.removeLast().id());
+            lookUpMap.remove(cache.removeFirst().id());
             timeOutMap.remove(t.id());// does this still remove from linked list
+            workingOn.add(cache.size() -1);
+            workingOn.remove(index);
+            index = cache.size() -1;
         }
-        cache.addFirst(t);
+        if(lookUpMap.containsKey(t.id())) {
+            cache.remove(t);
+        }
+        cache.addLast(t);
         lookUpMap.put(t.id(), t);
         timeOutMap.put(t.id(), 1000*System.currentTimeMillis() + timeout);
+        workingOn.remove(index);
         return true;
     }
-
     private void clean(){
         for (String id : timeOutMap.keySet()) {
             long time = 1000*System.currentTimeMillis();
