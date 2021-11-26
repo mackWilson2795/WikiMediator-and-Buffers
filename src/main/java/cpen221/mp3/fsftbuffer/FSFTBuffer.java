@@ -50,7 +50,7 @@ public class FSFTBuffer<T extends Bufferable> {
     public boolean put(T t) {
         clean();
         int index; //Todo: make this cleaner with the whole working on thing
-        workingOn.add(cache.size());
+        workingOn.add(cache.size());//Todo: ignore workingOn
         index = cache.size();
         if(cache.size() == capacity){
             lookUpMap.remove(cache.removeFirst().id());

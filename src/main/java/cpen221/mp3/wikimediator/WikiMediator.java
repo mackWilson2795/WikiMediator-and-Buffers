@@ -1,6 +1,13 @@
 package cpen221.mp3.wikimediator;
 
+import java.util.*;
+import cpen221.mp3.fsftbuffer.FSFTBuffer;
+import org.fastily.jwiki.core.*;
+import org.fastily.jwiki.dwrap.*;
+
 public class WikiMediator {
+Wiki wiki;
+
 
     /* TODO: Implement this datatype
 
