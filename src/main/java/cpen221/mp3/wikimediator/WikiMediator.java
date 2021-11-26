@@ -9,7 +9,7 @@ public class WikiMediator {
 Wiki wiki;
 
 
-    /* TODO: Implement this datatype
+        /* TODO: Implement this datatype
 
         You must implement the methods with the exact signatures
         as provided in the statement for this mini-project.
@@ -21,4 +21,33 @@ Wiki wiki;
 
      */
 
+    public WikiMediator(int capacity, int stalenessInterval){
+        wiki = new Wiki.Builder().build();
+    }
+
+    public List<String> search(String query, int limit){
+        ArrayList<String> pageTitles = new ArrayList<>();
+        pageTitles = wiki.search(query,limit);
+        return pageTitles;
+    }
+
+    public String getPage(String pageTitle){
+       return wiki.getPageText(pageTitle);
+    }
+
+    public List<String> zeitgeist(int limit){
+        return null;
+    }
+
+    public List<String> trending(int timeLimitInSeconds, int maxItems){
+        return null;
+    }
+
+    public int windowedPeakLoad(int timeWindowInSeconds){
+        return -1;
+    }
+
+    public int windowedPeakLoad(){
+        return -1;
+    }
 }
