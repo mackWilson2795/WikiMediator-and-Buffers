@@ -6,7 +6,7 @@ import org.fastily.jwiki.core.*;
 import org.fastily.jwiki.dwrap.*;
 
 public class WikiMediator {
-Wiki wiki;
+    Wiki wiki;
 
 
         /* TODO: Implement this datatype

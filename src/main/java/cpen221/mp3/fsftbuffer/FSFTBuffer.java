@@ -10,12 +10,30 @@ public class FSFTBuffer<T extends Bufferable> {
 
     /* the default timeout value is 3600s */
     public static final int DTIMEOUT = 3600;
+
+    /* Conversion factor between milliseconds and seconds */
+    // TODO: Added this
+    public static final int MS_CONVERSION = 1000;
+
+    /* TODO: not a real abstraction function just me trying to understand variables
+        Abstraction Function:
+        lookUpMap: id -> T
+        cache: T's in order
+        timeOutMap: ids -> staleness time (last time touched)
+        workingOn: for thread safety? current list of things being modified right now?
+     */
+    /* TODO: fake rep invariant
+        For all String1s in lookUpMap, there should be a String2 in timeOutMap
+        such that: String1 = String2.
+        For all Integer
+     */
+
     private HashMap<String, T> lookUpMap;
     private LinkedList<T> cache;//maybe queue
     private HashMap<String, Long> timeOutMap;
     private int capacity;
     private int timeout;
-    private ArrayList<Integer> workingOn;
+    private ArrayList<Integer> workingOn; // TODO: maybe should be a string?
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -55,21 +73,26 @@ public class FSFTBuffer<T extends Bufferable> {
         if(cache.size() == capacity){
             lookUpMap.remove(cache.removeFirst().id());
             timeOutMap.remove(t.id());// does this still remove from linked list
-            workingOn.add(cache.size() -1);
-            workingOn.remove(index);
-            index = cache.size() -1;
+            workingOn.add(cache.size() - 1);
+            workingOn.remove(index); // TODO: I like the idea of a *PRIVATE* "remove" method to do this
+            index = cache.size() - 1;
         }
         if(lookUpMap.containsKey(t.id())) {
             cache.remove(t);
         }
         cache.addLast(t);
         lookUpMap.put(t.id(), t);
-        timeOutMap.put(t.id(), 1000*System.currentTimeMillis() + timeout);
+        timeOutMap.put(t.id(), 1000 * System.currentTimeMillis() + timeout);
         workingOn.remove(index);
         return true;
     }
+
+    /** TODO: temp spec
+     * Removes all expired entries in the FSFTBuffer.
+     */
     private void clean(){
         for (String id : timeOutMap.keySet()) {
+            // TODO: 1000 should be a global variable - also are we converting ms to us here? Should it be /1000?
             long time = 1000*System.currentTimeMillis();
             if(timeOutMap.get(id) >= time){
                 timeOutMap.remove(id);
@@ -83,7 +106,7 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return the object that matches the identifier from the
      * buffer
      */
-    public T get(String id) throws NotFoundException {
+    public Object get(String id) throws NotFoundException {
         clean();
         if(!lookUpMap.containsKey(id)){
             throw new NotFoundException("Object is not in the cache!");
