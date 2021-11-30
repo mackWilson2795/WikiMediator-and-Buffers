@@ -1,12 +1,17 @@
 package cpen221.mp3.wikimediator;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
 import org.fastily.jwiki.core.*;
 import org.fastily.jwiki.dwrap.*;
 
 public class WikiMediator {
-    Wiki wiki;
+Wiki wiki;
+FSFTBuffer<WikiPage> cache;
+ConcurrentHashMap<String, StringCounter> countMap;
+
 
 
         /* TODO: Implement this datatype
@@ -23,6 +28,8 @@ public class WikiMediator {
 
     public WikiMediator(int capacity, int stalenessInterval){
         wiki = new Wiki.Builder().build();
+        cache = new FSFTBuffer<>(capacity, stalenessInterval);
+        countMap = new ConcurrentHashMap<>();
     }
 
     public List<String> search(String query, int limit){
@@ -32,10 +39,13 @@ public class WikiMediator {
     }
 
     public String getPage(String pageTitle){
-       return wiki.getPageText(pageTitle);
+        String text = wiki.getPageText(pageTitle);
+        cache.put(new WikiPage(pageTitle, text));
+        return text;
     }
 
     public List<String> zeitgeist(int limit){
+        countMap.keySet()
         return null;
     }
 

@@ -28,7 +28,7 @@ public class FSFTBuffer<T extends Bufferable> {
         For all Integer
      */
 
-    private HashMap<String, T> lookUpMap;
+    private HashMap <String, T> lookUpMap;
     private LinkedList<T> cache;//maybe queue
     private HashMap<String, Long> timeOutMap;
     private int capacity;
@@ -93,7 +93,7 @@ public class FSFTBuffer<T extends Bufferable> {
     private void clean(){
         for (String id : timeOutMap.keySet()) {
             // TODO: 1000 should be a global variable - also are we converting ms to us here? Should it be /1000?
-            long time = 1000*System.currentTimeMillis();
+            long time = System.currentTimeMillis()/MS_CONVERSION;
             if(timeOutMap.get(id) >= time){
                 timeOutMap.remove(id);
                 cache.remove(lookUpMap.remove(id));
