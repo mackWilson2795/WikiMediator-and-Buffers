@@ -2,6 +2,7 @@ package cpen221.mp3.wikimediator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
 import org.fastily.jwiki.core.*;
@@ -45,8 +46,10 @@ ConcurrentHashMap<String, StringCounter> countMap;
     }
 
     public List<String> zeitgeist(int limit){
-        countMap.keySet()
-        return null;
+        ArrayList<StringCounter> toSort = new ArrayList<>(countMap.values());
+        Collections.sort(toSort);
+        toSort.subList(0, limit-1);
+        return toSort.stream().map(StringCounter :: getId).collect(Collectors.toList());
     }
 
     public List<String> trending(int timeLimitInSeconds, int maxItems){

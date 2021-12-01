@@ -18,6 +18,10 @@ public class StringCounter implements Comparable<StringCounter>{
        return counter;
     }
 
+    public String getId() {
+        return id;
+    }
+
     @Override
     public int compareTo(@NotNull StringCounter o) {
         return Integer.compare(this.getCounter(), o.getCounter());
