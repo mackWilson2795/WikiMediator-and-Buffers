@@ -7,8 +7,8 @@ public class StringCounter implements Comparable<StringCounter>{
     private String id;
     private int counter;
     public StringCounter(String id, int count){
-      id = id;
-       counter = count;
+      this.id = id;
+      counter = count;
     }
     public void newInstance() {
         ++counter;
