@@ -15,5 +15,4 @@ public class WikiPage implements Bufferable {
         return title;
     }
 
-
 }

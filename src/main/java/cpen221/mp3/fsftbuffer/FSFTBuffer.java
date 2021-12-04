@@ -22,6 +22,7 @@ public class FSFTBuffer<T extends Bufferable> {
         timeOutMap: ids -> staleness time (last time touched)
         workingOn: for thread safety? current list of things being modified right now?
      */
+
     /* TODO: fake rep invariant
         For all String1s in lookUpMap, there should be a String2 in timeOutMap
         such that: String1 = String2.
@@ -68,11 +69,11 @@ public class FSFTBuffer<T extends Bufferable> {
     public boolean put(T t) {
         clean();
         int index; //Todo: make this cleaner with the whole working on thing
-        workingOn.add(cache.size());//Todo: ignore workingOn
+        workingOn.add(cache.size()); // Todo: ignore workingOn
         index = cache.size();
         if(cache.size() == capacity){
             lookUpMap.remove(cache.removeFirst().id());
-            timeOutMap.remove(t.id());// does this still remove from linked list
+            timeOutMap.remove(t.id()); // does this still remove from linked list
             workingOn.add(cache.size() - 1);
             workingOn.remove(index); // TODO: I like the idea of a *PRIVATE* "remove" method to do this
             index = cache.size() - 1;
