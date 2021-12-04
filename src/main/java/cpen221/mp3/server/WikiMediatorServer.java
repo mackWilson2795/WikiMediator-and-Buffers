@@ -1,15 +1,17 @@
 package cpen221.mp3.server;
 
 import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import cpen221.mp3.wikimediator.WikiMediator;
-import okhttp3.Request;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class WikiMediatorServer {
-    private int maxClients;
+    private int maxRequests;
     private int currentThreads = 0;
     private ServerSocket serverSocket;
     private WikiMediator wikiMediator;
@@ -26,20 +28,17 @@ public class WikiMediatorServer {
     public WikiMediatorServer(int port, int n,
                               WikiMediator wikiMediator) throws IOException {
         serverSocket = new ServerSocket(port);
-        maxClients = n;
+        maxRequests = n;
         // TODO: copy constructor here? - rep exposure
         this.wikiMediator = wikiMediator;
     }
 
     public void serve() throws IOException {
         while (true) {
-            final Socket clientSocket = serverSocket.accept();
-
             //TODO: queue up requests
-            if (currentThreads < maxClients){
+            if (currentThreads < maxRequests){
+                final Socket clientSocket = serverSocket.accept();
                 createNewThread(clientSocket);
-            } else {
-
             }
         }
     }
@@ -51,7 +50,7 @@ public class WikiMediatorServer {
             public void run() {
                 try {
                     try {
-                        handleClient(socket);
+                        handleRequest(socket);
                     } finally {
                         socket.close();
                     }
@@ -63,20 +62,24 @@ public class WikiMediatorServer {
         handler.start();
     }
 
-    private void handleClient(Socket socket) throws IOException {
+    private void handleRequest(Socket socket) throws IOException {
         Gson gson = new Gson();
 
-        BufferedReader inputStream = new BufferedReader(new InputStreamReader
+        JsonReader reader = new JsonReader(new InputStreamReader
                 (socket.getInputStream()));
-        PrintWriter outputStream = new PrintWriter(new OutputStreamWriter
-                (socket.getOutputStream()));
-        String nextLine;
 
-        while ((nextLine = inputStream.readLine()) != null){
+        Request request = gson.fromJson(reader, );
 
+        switch (request) {
+            case 1:;
+            case 2:;
         }
 
         //TODO: output pathing?
         // TODO: JSON -> Request
+
+        try {
+
+        }
     }
 }
