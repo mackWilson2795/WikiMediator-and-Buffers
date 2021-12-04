@@ -1,21 +1,42 @@
 package cpen221.mp3.wikimediator.Requests;
 
-import java.math.BigInteger;
+import org.jetbrains.annotations.NotNull;
 
-public class SearchRequest extends Request {
-    private String query;
-    private int limit;
-    public SearchRequest(BigInteger time, int id, String query, int limit){
-        super(time, RequestType.SEARCH, id);
-        this.query = query;
-        this.limit = limit;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SearchRequest implements Request, Comparable<Request> {
+    private final ArrayList<String> query;
+    private final Long timeInSeconds;
+    private final int id;
+    public SearchRequest(Long timeInSeconds, int id, String query, int limit){
+        this.query = new ArrayList<String>(2);
+        this.query.add(query);
+        this.query.add(String.valueOf(limit));
+        this.timeInSeconds = timeInSeconds;
+        this.id = id;
     }
 
-    public String getQuery(){
-        return query; //still not clear on whether this needs a defensive copy or not?
+    public List<String> getQuery(){
+        return query;
     }
 
-    public int getLimit() {
-        return limit;
+    public Long getTimeInSeconds() {
+        return timeInSeconds;
+    }
+
+
+    public int getId() {
+        return id;
+    }
+
+
+    public RequestType getType() {
+        return RequestType.SEARCH;
+    }
+
+    @Override
+    public int compareTo(@NotNull Request o) {
+        return (this.getTimeInSeconds().compareTo(o.getTimeInSeconds()));
     }
 }

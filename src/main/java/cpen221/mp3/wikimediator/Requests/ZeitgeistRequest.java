@@ -1,10 +1,8 @@
 package cpen221.mp3.wikimediator.Requests;
 
-import java.math.BigInteger;
-
-public class ZeitgeistRequest extends Request{
+public class ZeitgeistRequest extends GeneralRequest {
     private int limit;
-    public ZeitgeistRequest(BigInteger time, int id, int limit){
+    public ZeitgeistRequest(Long time, int id, int limit){
         super(time, RequestType.ZEITGEIST, id);
         this.limit = limit;
     }

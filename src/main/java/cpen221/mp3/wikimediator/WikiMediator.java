@@ -5,14 +5,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
+import cpen221.mp3.wikimediator.Requests.GeneralRequest;
+import cpen221.mp3.wikimediator.Requests.RequestType;
 import org.fastily.jwiki.core.*;
-import org.fastily.jwiki.dwrap.*;
 
 public class WikiMediator {
 Wiki wiki;
 FSFTBuffer<WikiPage> cache;
-ConcurrentHashMap<String, StringCounter> countMap;
-
+ConcurrentHashMap<String, Integer> countMap;
+Set<GeneralRequest> allRequests;
 
 
         /* TODO: Implement this datatype
@@ -31,6 +32,31 @@ ConcurrentHashMap<String, StringCounter> countMap;
         wiki = new Wiki.Builder().build();
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
         countMap = new ConcurrentHashMap<>();
+        allRequests = Collections.synchronizedSortedSet(new TreeSet<GeneralRequest>());
+        read();
+
+
+    }
+
+    private void append(){
+        synchronized (countMap){
+            synchronized (allRequests){
+                for (GeneralRequest request :allRequests) {
+                    if(request.getType() == RequestType.GETPAGE || request.getType() == RequestType.SEARCH){
+                        request.get
+
+                    }
+                }
+            }
+        }
+    }
+
+    private void read(){
+        //make iterations over allRequest syncronized
+    }
+
+    private void write(){
+        //""
     }
 
     public List<String> search(String query, int limit){
@@ -46,10 +72,7 @@ ConcurrentHashMap<String, StringCounter> countMap;
     }
 
     public List<String> zeitgeist(int limit){
-        ArrayList<StringCounter> toSort = new ArrayList<>(countMap.values());
-        Collections.sort(toSort);
-        toSort.subList(0, limit-1);
-        return toSort.stream().map(StringCounter :: getId).collect(Collectors.toList());
+
     }
 
     public List<String> trending(int timeLimitInSeconds, int maxItems){
