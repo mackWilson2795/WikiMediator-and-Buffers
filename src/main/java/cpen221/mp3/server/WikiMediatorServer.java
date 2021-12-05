@@ -68,6 +68,7 @@ public class WikiMediatorServer {
             }
         });
         handler.start();
+        currentThreads--; // TODO: double check
     }
 
     private void handleClient(Socket socket) throws IOException {
@@ -123,12 +124,10 @@ public class WikiMediatorServer {
 
     private Object handleRequest(JsonObject request) throws
             TimeoutException, ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Object> future = new FutureTask<Object>(new RequestHandler(request));
+        ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO: remove?
+        Future<Object> future = new FutureTask<>(new RequestHandler(request));
 
-        if (request.get("timeout")  == null) {
-            future.get();
-        } else {
+        if (request.get("timeout")  != null) {
             future.get(request.get("timeout").getAsLong(), TimeUnit.SECONDS);
         }
 
@@ -150,6 +149,7 @@ public class WikiMediatorServer {
 
         public Object call() {
             String requestType = request.get("type").toString();
+            Object toReturn;
 
             switch (requestType) {
                 // TODO: double check spelling of all entries etc...
@@ -178,7 +178,7 @@ public class WikiMediatorServer {
                     break; // TODO: implement this !!!
             }
 
-            return null;
+            return null; // TODO: fix
         }
     }
 }
