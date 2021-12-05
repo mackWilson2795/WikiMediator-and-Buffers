@@ -8,14 +8,16 @@ import cpen221.mp3.wikimediator.WikiMediator;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Objects;
 import java.util.TreeSet;
+import java.util.concurrent.*;
 
 public class WikiMediatorServer {
     private final int maxClients;
     private int currentThreads = 0;
     private final ServerSocket serverSocket;
     private final WikiMediator wikiMediator;
-    // TODO: create queue
+    // TODO: create premade "success" and "failed" JsonObjects
 
     /**
      * Start a server at a given port number, with the ability to process
@@ -41,7 +43,7 @@ public class WikiMediatorServer {
                     createNewThread(clientSocket);
                 }
             }
-        } catch (IOException ioe){
+        } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new RuntimeException("Error connecting to ServerSocket.");
         }
@@ -72,6 +74,7 @@ public class WikiMediatorServer {
         Gson gson = new Gson();
         String nextLine;
 
+        // TODO: I want to try clean this up / maybe break some methods off
         try (
                 BufferedReader inputStream = new BufferedReader(new InputStreamReader
                         (socket.getInputStream()));
@@ -80,24 +83,102 @@ public class WikiMediatorServer {
              ) {
             while ((nextLine = inputStream.readLine()) != null) {
                 // Request -> JSON
-               JsonObject request = gson.fromJson(nextLine, JsonObject.class);
+                JsonObject request = gson.fromJson(nextLine, JsonObject.class);
+                Object result = null;
+                JsonObject response = new JsonObject();
+                response.add("id", request.get("id"));
+
+                // Catch "stop"
+                if (Objects.equals(request.get("type").toString(), "stop")){
+                    response.add("response", gson.toJsonTree("bye"));
+                    close();
+                }
+
                 // Read JSON
+                // Handle request
+                try {
+                    result  = handleRequest(request);
+                } catch (TimeoutException | ExecutionException | InterruptedException  e) {
+                    if (e instanceof TimeoutException) {
+                        // TODO: send failed notice
+                    } else {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                // Receive request
+                // Write JSON response
+                if (result != null){
+                    // TODO != null????
+                    response.add("status", gson.toJsonTree("success"));
+                    response.add("response", gson.toJsonTree(result));
+                }
+
+                // Send response
+                outputStream.println(gson.toJson(response));
             }
         }
     }
 
-    private void handleRequest(JsonObject request) {
-        String requestType = request.get("type").toString();
+    private Object handleRequest(JsonObject request) throws
+            TimeoutException, ExecutionException, InterruptedException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<Object> future = new FutureTask<Object>(new RequestHandler(request));
 
-        switch (requestType){
-            case 1:
-
+        if (request.get("timeout")  == null) {
+            future.get();
+        } else {
+            future.get(request.get("timeout").getAsLong(), TimeUnit.SECONDS);
         }
+
+        return future.get();
     }
 
     private void close() {
         // TODO: this
         // Call close() in wikiMediator -- this writes to file
-        // Close serverSocket -- is this enough
+        // Close serverSocket -- is this enough?
+    }
+
+    class RequestHandler implements Callable<Object> {
+        private JsonObject request;
+
+        public RequestHandler(JsonObject request) {
+            this.request = request;
+        }
+
+        public Object call() {
+            String requestType = request.get("type").toString();
+
+            switch (requestType) {
+                // TODO: double check spelling of all entries etc...
+                case "search":
+                    return wikiMediator.search(
+                            request.get("query").toString(),
+                            request.get("limit").getAsInt());
+                case "getPage":
+                    return wikiMediator.getPage(
+                            request.get("pageTitle").toString());
+                case "zeitgeist":
+                    return wikiMediator.zeitgeist(
+                            request.get("limit").getAsInt());
+                case "trending":
+                    return wikiMediator.trending(
+                            request.get("timeLimitInSeconds").getAsInt(),
+                            request.get("maxItems").getAsInt());
+                case "windowedPeakLoad":
+                    if (request.has("timeWindowInSeconds")) {
+                        return wikiMediator.windowedPeakLoad(
+                                request.get("timeWindowInSeconds").getAsInt());
+                    } else {
+                        return wikiMediator.windowedPeakLoad();
+                    }
+                case "shortestPath":
+                    break; // TODO: implement this !!!
+            }
+
+            return null;
+        }
     }
 }
