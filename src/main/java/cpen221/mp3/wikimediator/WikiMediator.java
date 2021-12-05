@@ -5,15 +5,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
+import cpen221.mp3.wikimediator.Requests.ReferenceRequest;
 import cpen221.mp3.wikimediator.Requests.Request;
 import cpen221.mp3.wikimediator.Requests.RequestType;
+import kotlin.jvm.Synchronized;
 import org.fastily.jwiki.core.*;
 
 public class WikiMediator {
-Wiki wiki;
-FSFTBuffer<WikiPage> cache;
-ConcurrentHashMap<String, Integer> countMap;
-Set<Request> allRequests;
+
+    private static final int MS_CONVERSION = 1000;
+
+    private final Wiki wiki;
+    private final FSFTBuffer<WikiPage> cache;
+    private final ConcurrentHashMap<String, Integer> countMap;
+    private final SortedSet<Request> allRequests;
 
 
     /* TODO: Implement this datatype
@@ -38,7 +43,7 @@ Set<Request> allRequests;
 
     }
 
-    private void append(){
+    private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
         synchronized (countMap){
             synchronized (allRequests){
                 for (Request request :allRequests) {
@@ -72,11 +77,30 @@ Set<Request> allRequests;
     }
 
     public List<String> zeitgeist(int limit){
-        return new ArrayList<String>();
+        ArrayList<String> queries;
+        synchronized (countMap) {
+            queries = count(countMap);
+        }
+        return trim(queries, limit);
     }
 
-    public List<String> trending(int timeLimitInSeconds, int maxItems){
-        return null;
+    public ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
+        return toCount.entrySet().stream().sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public List<String> trim(ArrayList<String> toTrim, int desiredSize) {
+        if (toTrim.size() > desiredSize){
+            return toTrim.subList(0, desiredSize-1);
+        }
+        return toTrim;
+    }
+
+    public List<String> trending(int timeLimitInSeconds, int maxItems) {
+        SortedSet<Request> requestsInTimeWindow;
+        synchronized (allRequests) {
+            requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(System.currentTimeMillis() / MS_CONVERSION), new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION) - timeLimitInSeconds));
+        }
+        return trim(count(append(requestsInTimeWindow)), maxItems);
     }
 
     public int windowedPeakLoad(int timeWindowInSeconds){

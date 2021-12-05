@@ -17,7 +17,12 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
         this.requestType = requestType;
         this.id = id;
     }
-    //make another constructor that doesnt take enum
+
+    public AbstractRequest(Long timeInSeconds) {
+        this.timeInSeconds = timeInSeconds;
+        id = -1;
+        requestType = RequestType.REFERENCE;
+    }
 
     public Long getTimeInSeconds(){
         return timeInSeconds;
