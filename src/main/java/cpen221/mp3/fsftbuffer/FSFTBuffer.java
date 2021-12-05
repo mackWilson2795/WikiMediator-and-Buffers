@@ -78,7 +78,7 @@ public class FSFTBuffer<T extends Bufferable> {
             index = cache.size() - 1;
         }
         if(lookUpMap.containsKey(t.id())) {
-            cache.remove(t);
+            return false
         }
         cache.addLast(t);
         lookUpMap.put(t.id(), t);
@@ -111,6 +111,7 @@ public class FSFTBuffer<T extends Bufferable> {
         if(!lookUpMap.containsKey(id)){
             throw new NotFoundException("Object is not in the cache!");
         }
+        //should update LRU
         return lookUpMap.get(id);
     }
 
@@ -141,7 +142,7 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return true if successful and false otherwise
      */
     public boolean update(T t) {
-        String id = t.id();
+
         return touch(id);
     }
 }

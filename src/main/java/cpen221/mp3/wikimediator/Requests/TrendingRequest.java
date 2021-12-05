@@ -1,21 +1,21 @@
 package cpen221.mp3.wikimediator.Requests;
 
-import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
-public class TrendingRequest extends GeneralRequest {
+public class TrendingRequest extends AbstractRequest {
 
+    private final ArrayList<String> query = new ArrayList<>(2);
 
-    public TrendingRequest(Long time, int id, BigInteger timeLimitInSeconds, int maxItems){
-        super(time, RequestType.TRENDING, id);
-        this.timeLimitInSeconds = timeLimitInSeconds;
-        this.maxItems = maxItems;
+    public TrendingRequest (Long timeInSeconds, int id, int timeLimitInSeconds, int maxItems) {
+        super(timeInSeconds, id, RequestType.TRENDING);
+        query.add(String.valueOf(timeLimitInSeconds));
+        query.add(String.valueOf(maxItems));
     }
 
-    public int getMaxItems() {
-        return maxItems;
+    @Override
+    public List<String> getQuery() {
+        return query;
     }
 
-    public BigInteger getTimeLimitInSeconds() {
-        return timeLimitInSeconds;
-    }
 }
