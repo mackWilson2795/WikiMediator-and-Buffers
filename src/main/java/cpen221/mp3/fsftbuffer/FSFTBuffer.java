@@ -1,6 +1,5 @@
 package cpen221.mp3.fsftbuffer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 public class FSFTBuffer<T extends Bufferable> {
@@ -29,12 +28,11 @@ public class FSFTBuffer<T extends Bufferable> {
         For all Integer
      */
 
-    private HashMap <String, T> lookUpMap;
-    private LinkedList<T> cache;//maybe queue
-    private HashMap<String, Long> timeOutMap;
-    private int capacity;
-    private int timeout;
-    private ArrayList<Integer> workingOn; // TODO: maybe should be a string?
+    private final HashMap <String, T> lookUpMap = new HashMap<>(); // TODO : thread safety
+    private final LinkedList<String> LRUQueue = new LinkedList<>();
+    private final HashMap<String, Long> timeOutMap = new HashMap<>(); // TODO : thread safety
+    private final int capacity;
+    private final int timeout;
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -48,10 +46,6 @@ public class FSFTBuffer<T extends Bufferable> {
     public FSFTBuffer(int capacity, int timeout) {
         this.capacity = capacity;
         this.timeout = timeout;
-        lookUpMap = new HashMap();
-        cache = new LinkedList();
-        timeOutMap = new HashMap();
-        workingOn = new ArrayList<>();
     }
 
     /**
@@ -68,51 +62,14 @@ public class FSFTBuffer<T extends Bufferable> {
      */
     public boolean put(T t) {
         clean();
-        int index; //Todo: make this cleaner with the whole working on thing
-        workingOn.add(cache.size()); // Todo: ignore workingOn
-        index = cache.size();
-        if(cache.size() == capacity){
-            lookUpMap.remove(cache.removeFirst().id());
-            timeOutMap.remove(t.id()); // does this still remove from linked list
-            workingOn.add(cache.size() - 1);
-            workingOn.remove(index); // TODO: I like the idea of a *PRIVATE* "remove" method to do this
-            index = cache.size() - 1;
+        if (lookUpMap.containsKey(t.id())) { // TODO : thread safety
+            return false;
         }
-        if(lookUpMap.containsKey(t.id())) {
-            cache.remove(t);
+        if (LRUQueue.size() == capacity) { // TODO : thread safety
+            removeLRU();
         }
-        cache.addLast(t);
-        lookUpMap.put(t.id(), t);
-        timeOutMap.put(t.id(), 1000 * System.currentTimeMillis() + timeout);
-        workingOn.remove(index);
+        add(t);
         return true;
-    }
-
-    /** TODO: temp spec
-     * Removes all expired entries in the FSFTBuffer.
-     */
-    private void clean(){
-        for (String id : timeOutMap.keySet()) {
-            // TODO: 1000 should be a global variable - also are we converting ms to us here? Should it be /1000?
-            long time = System.currentTimeMillis()/MS_CONVERSION;
-            if(timeOutMap.get(id) >= time){
-                timeOutMap.remove(id);
-                cache.remove(lookUpMap.remove(id));
-            }
-        }
-    }
-
-    /**
-     * @param id the identifier of the object to be retrieved
-     * @return the object that matches the identifier from the
-     * buffer
-     */
-    public Object get(String id) throws NotFoundException {
-        clean();
-        if(!lookUpMap.containsKey(id)){
-            throw new NotFoundException("Object is not in the cache!");
-        }
-        return lookUpMap.get(id);
     }
 
     /**
@@ -125,12 +82,69 @@ public class FSFTBuffer<T extends Bufferable> {
      */
     public boolean touch(String id) {
         clean();
-        if(lookUpMap.containsKey(id)){
-            timeOutMap.remove(id);
-            timeOutMap.put(id, 1000*System.currentTimeMillis() + timeout);
+        if (lookUpMap.containsKey(id)) { // TODO : thread safety
+            timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) + timeout);
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param id the identifier of the object to be retrieved
+     * @return the object that matches the identifier from the
+     * buffer
+     */
+    public Object get(String id) throws NotFoundException {
+        clean();
+        if (!lookUpMap.containsKey(id)) { //TODO : thread safety - object gets removed through put
+            throw new NotFoundException("Object is not in the cache!");
+        }
+        LRUQueue.remove(id);
+        LRUQueue.addFirst(id);
+        return lookUpMap.get(id);
+    }
+
+    /**
+     * Update an object in the buffer.
+     * This method updates an object and acts like a "touch" to
+     * renew the object in the cache.
+     *
+     * @param t the object to update
+     * @return true if successful and false otherwise
+     */
+    public boolean update(T t) {
+        clean();
+        if (lookUpMap.containsKey(t.id())) { // TODO : thread safety
+            lookUpMap.put(t.id(), t);
+            timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
+            return true;
+        }
+        return false;
+    }
+
+    /** TODO: temp spec
+     * Removes all expired entries in the FSFTBuffer.
+     */
+    private void clean() { // TODO : Thread Safety
+        for (String id : timeOutMap.keySet()) {
+            long time = System.currentTimeMillis() / MS_CONVERSION;
+            if (timeOutMap.get(id) >= time) {
+                timeOutMap.remove(id);
+                LRUQueue.remove(lookUpMap.remove(id));
+            }
+        }
+    }
+
+    private void removeLRU() {
+        String id = LRUQueue.removeFirst();
+        lookUpMap.remove(id);
+        timeOutMap.remove(id);
+    }
+
+    private void add(T t) {
+        LRUQueue.addLast(t.id()); // TODO : Thread Safety last object
+        lookUpMap.put(t.id(), t);
+        timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
     }
 
     /**

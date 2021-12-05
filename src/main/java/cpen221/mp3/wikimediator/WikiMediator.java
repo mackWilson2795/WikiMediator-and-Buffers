@@ -10,10 +10,10 @@ import cpen221.mp3.wikimediator.Requests.RequestType;
 import org.fastily.jwiki.core.*;
 
 public class WikiMediator {
-Wiki wiki;
-FSFTBuffer<WikiPage> cache;
-ConcurrentHashMap<String, Integer> countMap;
-Set<GeneralRequest> allRequests;
+    Wiki wiki;
+    FSFTBuffer<WikiPage> cache;
+    ConcurrentHashMap<String, Integer> countMap;
+    Set<GeneralRequest> allRequests;
 
 
     /* TODO: Implement this datatype

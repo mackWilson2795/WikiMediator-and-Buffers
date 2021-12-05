@@ -1,20 +1,20 @@
 package cpen221.mp3.server;
 
 import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.JsonObject;
+import cpen221.mp3.wikimediator.Requests.Request;
 import cpen221.mp3.wikimediator.WikiMediator;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.TreeSet;
 
 public class WikiMediatorServer {
-    private int maxRequests;
+    private final int maxClients;
     private int currentThreads = 0;
-    private ServerSocket serverSocket;
-    private WikiMediator wikiMediator;
+    private final ServerSocket serverSocket;
+    private final WikiMediator wikiMediator;
     // TODO: create queue
 
     /**
@@ -28,18 +28,22 @@ public class WikiMediatorServer {
     public WikiMediatorServer(int port, int n,
                               WikiMediator wikiMediator) throws IOException {
         serverSocket = new ServerSocket(port);
-        maxRequests = n;
+        maxClients = n;
         // TODO: copy constructor here? - rep exposure
         this.wikiMediator = wikiMediator;
     }
 
-    public void serve() throws IOException {
-        while (true) {
-            //TODO: queue up requests
-            if (currentThreads < maxRequests){
+    public void serve() {
+        try {
+            while (true) {
                 final Socket clientSocket = serverSocket.accept();
-                createNewThread(clientSocket);
+                if (currentThreads < maxClients){
+                    createNewThread(clientSocket);
+                }
             }
+        } catch (IOException ioe){
+            ioe.printStackTrace();
+            throw new RuntimeException("Error connecting to ServerSocket.");
         }
     }
 
@@ -50,36 +54,50 @@ public class WikiMediatorServer {
             public void run() {
                 try {
                     try {
-                        handleRequest(socket);
+                        handleClient(socket);
                     } finally {
                         socket.close();
                     }
                 } catch (IOException ioe) {
                     ioe.printStackTrace();
+                    throw new RuntimeException("Encountered IOException when" +
+                            " creating new thread");
                 }
             }
         });
         handler.start();
     }
 
-    private void handleRequest(Socket socket) throws IOException {
+    private void handleClient(Socket socket) throws IOException {
         Gson gson = new Gson();
+        String nextLine;
 
-        JsonReader reader = new JsonReader(new InputStreamReader
-                (socket.getInputStream()));
-
-        Request request = gson.fromJson(reader, );
-
-        switch (request) {
-            case 1:;
-            case 2:;
+        try (
+                BufferedReader inputStream = new BufferedReader(new InputStreamReader
+                        (socket.getInputStream()));
+                PrintWriter outputStream = new PrintWriter(new OutputStreamWriter
+                        (socket.getOutputStream()));
+             ) {
+            while ((nextLine = inputStream.readLine()) != null) {
+                // Request -> JSON
+               JsonObject request = gson.fromJson(nextLine, JsonObject.class);
+                // Read JSON
+            }
         }
+    }
 
-        //TODO: output pathing?
-        // TODO: JSON -> Request
+    private void handleRequest(JsonObject request) {
+        String requestType = request.get("type").toString();
 
-        try {
+        switch (requestType){
+            case 1:
 
         }
+    }
+
+    private void close() {
+        // TODO: this
+        // Call close() in wikiMediator -- this writes to file
+        // Close serverSocket -- is this enough
     }
 }
