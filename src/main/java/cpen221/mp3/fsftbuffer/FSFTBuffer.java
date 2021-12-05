@@ -146,17 +146,4 @@ public class FSFTBuffer<T extends Bufferable> {
         lookUpMap.put(t.id(), t);
         timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
     }
-
-    /**
-     * Update an object in the buffer.
-     * This method updates an object and acts like a "touch" to
-     * renew the object in the cache.
-     *
-     * @param t the object to update
-     * @return true if successful and false otherwise
-     */
-    public boolean update(T t) {
-        String id = t.id();
-        return touch(id);
-    }
 }
