@@ -49,11 +49,11 @@ public class WikiMediator {
                 for (Request request :allRequests) {
                     if(request.getType() == RequestType.GETPAGE || request.getType() == RequestType.SEARCH){
 
-
                     }
                 }
             }
         }
+        return null;
     }
 
     private void read(){

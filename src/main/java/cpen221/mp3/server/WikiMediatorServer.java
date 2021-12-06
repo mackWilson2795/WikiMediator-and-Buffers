@@ -36,6 +36,7 @@ public class WikiMediatorServer {
     }
 
     public void serve() {
+        // TODO: wikimediator inside try with resources?
         try {
             while (true) {
                 final Socket clientSocket = serverSocket.accept();
@@ -149,36 +150,36 @@ public class WikiMediatorServer {
 
         public Object call() {
             String requestType = request.get("type").toString();
-            Object toReturn;
+            Object result = null; // TODO: null? idk...
 
             switch (requestType) {
                 // TODO: double check spelling of all entries etc...
                 case "search":
-                    return wikiMediator.search(
+                    result = wikiMediator.search(
                             request.get("query").toString(),
                             request.get("limit").getAsInt());
                 case "getPage":
-                    return wikiMediator.getPage(
+                    result = wikiMediator.getPage(
                             request.get("pageTitle").toString());
                 case "zeitgeist":
-                    return wikiMediator.zeitgeist(
+                    result = wikiMediator.zeitgeist(
                             request.get("limit").getAsInt());
                 case "trending":
-                    return wikiMediator.trending(
+                    result = wikiMediator.trending(
                             request.get("timeLimitInSeconds").getAsInt(),
                             request.get("maxItems").getAsInt());
                 case "windowedPeakLoad":
                     if (request.has("timeWindowInSeconds")) {
-                        return wikiMediator.windowedPeakLoad(
+                        result = wikiMediator.windowedPeakLoad(
                                 request.get("timeWindowInSeconds").getAsInt());
                     } else {
-                        return wikiMediator.windowedPeakLoad();
+                        result = wikiMediator.windowedPeakLoad();
                     }
                 case "shortestPath":
                     break; // TODO: implement this !!!
             }
 
-            return null; // TODO: fix
+            return result; // TODO: fix
         }
     }
 }

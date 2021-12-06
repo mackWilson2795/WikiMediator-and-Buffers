@@ -2,6 +2,8 @@ package cpen221.mp3.fsftbuffer;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Queue;
+
 public class FSFTBuffer<T extends Bufferable> {
 
     /* the default buffer size is 32 objects */
@@ -62,7 +64,9 @@ public class FSFTBuffer<T extends Bufferable> {
      */
     public boolean put(T t) {
         clean();
-        if (lookUpMap.containsKey(t.id())) { // TODO : thread safety
+        // TODO: capacity == 0 - messy fix, need to talk about how to approach this
+        // I think maybe this should only return true if it for sure adds
+        if (lookUpMap.containsKey(t.id()) || capacity == 0) { // TODO : thread safety
             return false;
         }
         if (LRUQueue.size() == capacity) { // TODO : thread safety
@@ -128,7 +132,7 @@ public class FSFTBuffer<T extends Bufferable> {
     private void clean() { // TODO : Thread Safety
         for (String id : timeOutMap.keySet()) {
             long time = System.currentTimeMillis() / MS_CONVERSION;
-            if (timeOutMap.get(id) >= time) {
+            if (timeOutMap.get(id) <= time) {
                 timeOutMap.remove(id);
                 LRUQueue.remove(lookUpMap.remove(id));
             }
@@ -136,9 +140,12 @@ public class FSFTBuffer<T extends Bufferable> {
     }
 
     private void removeLRU() {
-        String id = LRUQueue.removeFirst();
-        lookUpMap.remove(id);
-        timeOutMap.remove(id);
+        // TODO: check with team - potentially a bug here if this get called when buffer is empty (ie. concurrently or if buffer size = 0
+        if (LRUQueue.size() != 0){
+            String id = LRUQueue.removeFirst();
+            lookUpMap.remove(id);
+            timeOutMap.remove(id);
+        }
     }
 
     private void add(T t) {
