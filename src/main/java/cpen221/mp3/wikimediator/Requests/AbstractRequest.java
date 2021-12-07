@@ -32,6 +32,10 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
         return query;
     }
 
+    public int getIdentifier() {
+        return identifier;
+    }
+
     @Override
     public int compareTo(@NotNull Request o) {
         if (this.getTimeInSeconds().compareTo(o.getTimeInSeconds()) == 0){

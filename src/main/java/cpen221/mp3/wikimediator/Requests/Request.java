@@ -9,6 +9,7 @@ public interface Request extends Comparable<Request>{
     public RequestType getType();
     public List<String> getQuery();
     public Long getTimeInSeconds();
+    public int getIdentifier();
 
     @Override
     int compareTo(@NotNull Request o);
