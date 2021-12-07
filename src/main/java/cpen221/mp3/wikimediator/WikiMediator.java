@@ -23,16 +23,14 @@ public class WikiMediator {
     private final ConcurrentHashMap<String, Integer> countMap = new ConcurrentHashMap<>();
     private final SortedSet<Request> allRequests = new TreeSet<>();
 
-// add new method requests for all methods
-    /* TODO: Implement this datatype
+    /*
+    * Abstraction Function :
+    *
+    * countMap
+    * */
 
-        You must implement the methods with the exact signatures
-        as provided in the statement for this mini-project.
-
-        You must add method signatures even for the methods that you
-        do not plan to implement. You should provide skeleton implementation
-        for those methods, and the skeleton implementation could return
-        values like null.
+    /*
+    Rep Invariant :
 
      */
 
@@ -69,17 +67,17 @@ public class WikiMediator {
         switch (next.get("requestType").toString()) {
             case "SEARCH" :
                 return new SearchRequest(timeInSeconds,
-                        queriesJson.get(0).toString(), queriesJson.get(1).getAsInt());
+                        queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
             case "SHORTEST_PATH" :
                 return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).toString(),
-                        queriesJson.get(1).toString(), queriesJson.get(2).getAsInt());
+                        queriesJson.get(1).getAsString(), queriesJson.get(2).getAsInt());
             case "ZEITGEIST" :
                 return new ZeitgeistRequest(timeInSeconds, queriesJson.get(0).getAsInt());
             case "TRENDING" :
                 return new TrendingRequest(timeInSeconds,queriesJson.get(0).getAsInt(),
                         queriesJson.get(1).getAsInt());
             case "GET_PAGE" :
-                return new PageRequest(timeInSeconds, queriesJson.get(0).toString());
+                return new PageRequest(timeInSeconds, queriesJson.get(0).getAsString());
             default :
                 return new WindowedPeakLoadRequest(timeInSeconds, queriesJson.get(0).getAsInt());
         }
