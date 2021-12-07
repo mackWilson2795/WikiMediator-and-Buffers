@@ -77,12 +77,12 @@ public class Task4Tests {
                         "search", intArgs, "Barack Obama"));
         results.add(executor.submit(() -> client.receiveResponse()).get());
         executor.submit(() ->
-                client.sendRequest(null, "trending",
+                client.sendRequest(null, "window1",
                         "windowedPeakLoad", intArgs));
         results.add(executor.submit(() -> client.receiveResponse()).get());
         int[] intArgEmpty = new int[]{};
         executor.submit(() ->
-                client.sendRequest(null, "trending",
+                client.sendRequest(null, "window2",
                         "windowedPeakLoad", intArgEmpty));
         results.add(executor.submit(() -> client.receiveResponse()).get());
     }

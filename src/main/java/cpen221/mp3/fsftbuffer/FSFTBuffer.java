@@ -182,9 +182,11 @@ public class FSFTBuffer<T extends Bufferable> {
 
     private void removeLRU() {
         synchronized(this) {
-            String id = LRUQueue.removeFirst();
-            lookUpMap.remove(id);
-            timeOutMap.remove(id);
+            if (LRUQueue.size() > 0) {
+                String id = LRUQueue.removeFirst();
+                lookUpMap.remove(id);
+                timeOutMap.remove(id);
+            }
         }
     }
 

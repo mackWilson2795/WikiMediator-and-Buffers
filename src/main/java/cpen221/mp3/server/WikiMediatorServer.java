@@ -210,8 +210,10 @@ public class WikiMediatorServer {
                     if (request.has("timeWindowInSeconds")) {
                         result = wikiMediator.windowedPeakLoad(
                                 request.get("timeWindowInSeconds").getAsInt());
+                        System.out.println("timeWindowTest");
                     } else {
                         result = wikiMediator.windowedPeakLoad();
+                        System.out.println("notimeWindowTest");
                     }
                     break;
                 case "shortestPath":

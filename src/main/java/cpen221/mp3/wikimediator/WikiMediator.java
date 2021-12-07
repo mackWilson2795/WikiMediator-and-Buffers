@@ -151,7 +151,7 @@ public class WikiMediator {
     }
 
     public int windowedPeakLoad(int timeWindowInSeconds) {
-        Long referenceTime = 0L;
+        long referenceTime = 0;
         int timeWindow = timeWindowInSeconds;
         int maxSize = 0;
         LinkedList<Request> window = new LinkedList<>();
@@ -165,9 +165,8 @@ public class WikiMediator {
         // TODO: always one request?
         referenceTime = requestList.peek().getTimeInSeconds();
         window.addLast(requestList.pop());
-        Long nextTime;
 
-        while(!requestList.isEmpty() && (int)(window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
+        while(!requestList.isEmpty() && (requestList.peek().getTimeInSeconds().longValue() - referenceTime) < timeWindowInSeconds){
             window.addLast(requestList.pop());
         } //TODO: find a way to not repeat
 
@@ -190,10 +189,10 @@ public class WikiMediator {
 
 
     public int windowedPeakLoad(){
-
-        synchronized (allRequests) {
-            allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, DEFAULT_TIME_WINDOW_IN_SECONDS));
-        }
+        // TODO: remove
+        // synchronized (allRequests) {
+        //     allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, DEFAULT_TIME_WINDOW_IN_SECONDS));
+        // }
 
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
