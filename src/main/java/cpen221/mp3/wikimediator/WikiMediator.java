@@ -176,7 +176,12 @@ public class WikiMediator {
             while(!window.isEmpty() && Objects.equals(window.peek().getTimeInSeconds(), referenceTime)) {
                 window.pop();
             }
-            referenceTime = window.peek().getTimeInSeconds();
+            if (!window.isEmpty()) {
+                referenceTime = window.peek().getTimeInSeconds();
+            } else {
+                referenceTime = requestList.peek().getTimeInSeconds();
+            }
+
             while(!requestList.isEmpty() && requestList.peek().getTimeInSeconds() - referenceTime < timeWindow){
                window.addLast(requestList.pop());
             }
