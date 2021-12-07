@@ -66,12 +66,12 @@ public class WikiMediator {
     private Request parseRequest(JsonObject next) {
         JsonArray queriesJson = next.getAsJsonArray("queries");
         Long timeInSeconds = next.get("timeInSeconds").getAsLong();
-        switch (next.get("requestType").toString()) {
+        switch (next.get("requestType").getAsString()) {
             case "SEARCH" :
                 return new SearchRequest(timeInSeconds,
                         queriesJson.get(0).toString(), queriesJson.get(1).getAsInt());
             case "SHORTEST_PATH" :
-                return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).toString(),
+                return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).getAsString(),
                         queriesJson.get(1).toString(), queriesJson.get(2).getAsInt());
             case "ZEITGEIST" :
                 return new ZeitgeistRequest(timeInSeconds, queriesJson.get(0).getAsInt());
@@ -79,7 +79,7 @@ public class WikiMediator {
                 return new TrendingRequest(timeInSeconds,queriesJson.get(0).getAsInt(),
                         queriesJson.get(1).getAsInt());
             case "GET_PAGE" :
-                return new PageRequest(timeInSeconds, queriesJson.get(0).toString());
+                return new PageRequest(timeInSeconds, queriesJson.get(0).getAsString());
             default :
                 return new WindowedPeakLoadRequest(timeInSeconds, queriesJson.get(0).getAsInt());
         }
