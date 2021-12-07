@@ -64,7 +64,7 @@ public class WikiMediator {
     private Request parseRequest(JsonObject next) {
         JsonArray queriesJson = next.getAsJsonArray("queries");
         Long timeInSeconds = next.get("timeInSeconds").getAsLong();
-        switch (next.get("requestType").toString()) {
+        switch (next.get("requestType").getAsString()) {
             case "SEARCH" :
                 return new SearchRequest(timeInSeconds,
                         queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
