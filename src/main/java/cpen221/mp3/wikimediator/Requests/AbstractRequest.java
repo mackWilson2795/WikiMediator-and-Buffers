@@ -10,7 +10,7 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
     static int requestNumber = 2000;
 
     private final RequestType requestType;
-    private final ArrayList<String> query = new ArrayList<>();
+    private final transient ArrayList<String> queries = new ArrayList<>();
     private final Long timeInSeconds;
     private final int identifier;
 
@@ -28,8 +28,8 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
         return requestType;
     }
 
-    public List<String> getQuery() {
-        return query;
+    public List<String> getQueries() {
+        return queries;
     }
 
     public int getIdentifier() {

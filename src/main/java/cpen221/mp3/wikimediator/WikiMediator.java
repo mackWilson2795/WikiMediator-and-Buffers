@@ -1,15 +1,16 @@
 package cpen221.mp3.wikimediator;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.gson.Gson;
-import cpen221.mp3.fsftbuffer.Bufferable;
+import com.google.gson.*;
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
 import cpen221.mp3.fsftbuffer.NotFoundException;
 import cpen221.mp3.wikimediator.Requests.*;
-import kotlin.jvm.Synchronized;
 import org.fastily.jwiki.core.*;
 
 public class WikiMediator {
@@ -17,35 +18,35 @@ public class WikiMediator {
     private static final int MS_CONVERSION = 1000;
     private static final int DEFAULT_TIME_WINDOW_IN_SECONDS = 30;
 
+    private final File localDir = new File("local");
+    private final File allRequestsFile = new File("local/allRequests.txt");
+    private final File countMapFile = new File("local/countMap.txt");
     private final Wiki wiki = new Wiki.Builder().build();
     private final FSFTBuffer<WikiPage> cache;
-    private final ConcurrentHashMap<String, Integer> countMap;
-    private final SortedSet<Request> allRequests;
+    private final ConcurrentHashMap<String, Integer> countMap = new ConcurrentHashMap<>();
+    private final SortedSet<Request> allRequests = new TreeSet<>();
 
-// add new method requests for all methods
-    /* TODO: Implement this datatype
+    /*
+    * Abstraction Function :
+    *
+    * countMap
+    * */
 
-        You must implement the methods with the exact signatures
-        as provided in the statement for this mini-project.
-
-        You must add method signatures even for the methods that you
-        do not plan to implement. You should provide skeleton implementation
-        for those methods, and the skeleton implementation could return
-        values like null.
+    /*
+    Rep Invariant :
 
      */
 
     public WikiMediator(int capacity, int stalenessInterval) {
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
-        allRequests = Collections.synchronizedSortedSet(read());
-        countMap = append(allRequests);
+        read();
     }
 
     private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
         ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
         for (Request request : requests) {
             if (request.getType() == RequestType.GET_PAGE || request.getType() == RequestType.SEARCH) {
-                String query = request.getQuery().get(0);
+                String query = request.getQueries().get(0);
                 if (keepCount.containsKey(query)) {
                     Integer count = keepCount.get(query);
                     keepCount.put(query, ++count);
@@ -57,15 +58,80 @@ public class WikiMediator {
         return keepCount;
     }
 
-    private SortedSet<Request> read() { //file reader how does Gson handle nested objects, parser Api
-        SortedSet<Request> requests = new TreeSet<>();
+    private void read() { //file reader how does Gson handle nested objects, parser Api\
         Gson json = new Gson();
-        String bye = json.fromJson("Hello", String.class);
-        return new TreeSet<Request>();
+        
+        try {
+            if (allRequestsFile.exists()) {
+                BufferedReader allRequestsReader = new BufferedReader(new FileReader(allRequestsFile));
+                JsonArray allRequestsJsonArray = JsonParser.parseReader(allRequestsReader).getAsJsonArray();
+
+                Iterator<JsonElement> iterator = allRequestsJsonArray.iterator();
+
+                while (iterator.hasNext()) {
+                    JsonObject next = iterator.next().getAsJsonObject();
+                    allRequests.add(parseRequest(next));
+                }
+            }
+            if (countMapFile.exists()) { 
+                BufferedReader countMapReader = new BufferedReader(new FileReader(countMapFile));
+                countMap.putAll(json.fromJson(countMapReader, ConcurrentHashMap.class));
+                // TODO: mapping to double
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+   //    SortedSet<Request> requests = new TreeSet<>();
+   //    Gson json = new Gson();
+   //    String bye = json.fromJson("Hello", String.class);
+   //    return new TreeSet<Request>();
+    }
+    private Request parseRequest(JsonObject next) {
+        JsonArray queriesJson = next.getAsJsonArray("queries");
+        Long timeInSeconds = next.get("timeInSeconds").getAsLong();
+        switch (next.get("requestType").getAsString()) {
+            case "SEARCH" :
+                return new SearchRequest(timeInSeconds,
+                        queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
+            case "SHORTEST_PATH" :
+                return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).toString(),
+                        queriesJson.get(1).getAsString(), queriesJson.get(2).getAsInt());
+            case "ZEITGEIST" :
+                return new ZeitgeistRequest(timeInSeconds, queriesJson.get(0).getAsInt());
+            case "TRENDING" :
+                return new TrendingRequest(timeInSeconds,queriesJson.get(0).getAsInt(),
+                        queriesJson.get(1).getAsInt());
+            case "GET_PAGE" :
+                return new PageRequest(timeInSeconds, queriesJson.get(0).getAsString());
+            default :
+                return new WindowedPeakLoadRequest(timeInSeconds, queriesJson.get(0).getAsInt());
+        }
     }
 
-    private void write() {
-        //""
+    public void write() {
+        Gson json = new Gson();
+        try {
+            Files.deleteIfExists(Path.of(allRequestsFile.getPath()));
+            Files.deleteIfExists(Path.of(countMapFile.getPath()));
+
+            allRequestsFile.createNewFile();
+            countMapFile.createNewFile();
+
+            FileWriter allRequestWriter =  new FileWriter(allRequestsFile.getPath());
+            FileWriter countMapWriter =  new FileWriter(countMapFile.getPath());
+            
+            String allRequestAsJSON = json.toJson(allRequests);
+            String countMapAsJSON = json.toJson(countMap);
+
+            allRequestWriter.write(allRequestAsJSON);
+            countMapWriter.write(countMapAsJSON);
+
+            allRequestWriter.close();
+            countMapWriter.close();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            throw new RuntimeException();
+        }
     }
 
     public List<String> search(String query, int limit){
@@ -127,7 +193,11 @@ public class WikiMediator {
     }
 
     public ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
-        return toCount.entrySet().stream().sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey).collect(Collectors.toCollection(ArrayList::new));
+        ArrayList<String> reverseOrdered = toCount.entrySet().stream().
+                sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
+                .collect(Collectors.toCollection(ArrayList::new));
+        Collections.reverse(reverseOrdered);
+        return reverseOrdered;
     }
 
     public List<String> trim(ArrayList<String> toTrim, int desiredSize) {
