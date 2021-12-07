@@ -4,23 +4,26 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
 import cpen221.mp3.wikimediator.Requests.ReferenceRequest;
 import cpen221.mp3.wikimediator.Requests.Request;
 import cpen221.mp3.wikimediator.Requests.RequestType;
+import cpen221.mp3.wikimediator.Requests.SearchRequest;
 import kotlin.jvm.Synchronized;
 import org.fastily.jwiki.core.*;
 
 public class WikiMediator {
 
     private static final int MS_CONVERSION = 1000;
+    private static final int DEFAULT_TIME_WINDOW_IN_SECONDS = 30;
 
-    private final Wiki wiki;
+    private final Wiki wiki = new Wiki.Builder().build();
     private final FSFTBuffer<WikiPage> cache;
     private final ConcurrentHashMap<String, Integer> countMap;
     private final SortedSet<Request> allRequests;
 
-
+// add new method requests for all methods
     /* TODO: Implement this datatype
 
         You must implement the methods with the exact signatures
@@ -33,50 +36,55 @@ public class WikiMediator {
 
      */
 
-    public WikiMediator(int capacity, int stalenessInterval){
-        wiki = new Wiki.Builder().build();
+    public WikiMediator(int capacity, int stalenessInterval) {
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
-        countMap = new ConcurrentHashMap<>();
-        allRequests = Collections.synchronizedSortedSet(new TreeSet<Request>());
-        read();
-
-
+        allRequests = Collections.synchronizedSortedSet(read());
+        countMap = append(allRequests);
     }
 
     private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
-        synchronized (countMap){
-            synchronized (allRequests){
-                for (Request request :allRequests) {
-                    if(request.getType() == RequestType.GETPAGE || request.getType() == RequestType.SEARCH){
-
-
-                    }
+        ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
+        for (Request request : requests) {
+            if (request.getType() == RequestType.GETPAGE || request.getType() == RequestType.SEARCH) {
+                String query = request.getQuery().get(0);
+                if (keepCount.containsKey(query)) {
+                    Integer count = keepCount.get(query);
+                    keepCount.put(query, ++count);
+                } else {
+                    keepCount.put(query, 1);
                 }
             }
         }
+        return keepCount;
     }
 
-    private void read(){
-        //make iterations over allRequest syncronized
+    private SortedSet<Request> read() { //file reader how does Gson handle nested objects, parser Api
+        SortedSet<Request> requests = new TreeSet<>();
+        Gson json = new Gson();
+        String bye = json.fromJson("Hello", String.class);
+
     }
 
-    private void write(){
+    private void write() {
         //""
     }
 
     public List<String> search(String query, int limit){
+        allRequests.add(new SearchRequest())
         ArrayList<String> pageTitles = new ArrayList<>();
         pageTitles = wiki.search(query,limit);
         return pageTitles;
     }
 
     public String getPage(String pageTitle){
+
         String text = wiki.getPageText(pageTitle);
         cache.put(new WikiPage(pageTitle, text));
         return text;
     }
 
     public List<String> zeitgeist(int limit){
+
         ArrayList<String> queries;
         synchronized (countMap) {
             queries = count(countMap);
@@ -97,17 +105,46 @@ public class WikiMediator {
 
     public List<String> trending(int timeLimitInSeconds, int maxItems) {
         SortedSet<Request> requestsInTimeWindow;
-        synchronized (allRequests) {
+        synchronized (allRequests) { //inclusive?
             requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(System.currentTimeMillis() / MS_CONVERSION), new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION) - timeLimitInSeconds));
         }
         return trim(count(append(requestsInTimeWindow)), maxItems);
     }
 
-    public int windowedPeakLoad(int timeWindowInSeconds){
-        return -1;
+    public int windowedPeakLoad(int timeWindowInSeconds) { //left side close bound right side open?
+
+        Long referenceTime = allRequests.first().getTimeInSeconds();
+        int timeWindow = timeWindowInSeconds;
+        int maxSize = 0;
+        LinkedList <Request> window = new LinkedList<>();
+        LinkedList<Request> iterator = new LinkedList<>();
+        synchronized (allRequests) {
+            iterator.addAll(allRequests);
+        }
+
+        while(!iterator.isEmpty() && (window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
+            window.addLast(iterator.pop());
+        }
+
+        maxSize = window.size();
+
+        while(!iterator.isEmpty()){
+            while(window.peek().getTimeInSeconds() == referenceTime){
+                window.pop();
+            }
+            referenceTime = window.peek().getTimeInSeconds();
+            while(!iterator.isEmpty() && iterator.peek().getTimeInSeconds() - referenceTime < timeWindow){
+               window.addLast(iterator.pop());
+            }
+            if (window.size() > maxSize) {
+               maxSize = window.size();
+            }
+        }
+        return maxSize;
     }
 
+
     public int windowedPeakLoad(){
-        return -1;
+        return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
 }
