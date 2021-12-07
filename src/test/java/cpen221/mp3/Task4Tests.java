@@ -14,6 +14,7 @@ import java.util.concurrent.*;
 public class Task4Tests {
 
     public static final String LOCAL_HOST = "127.0.0.1";
+    public static final int PORT = 9012;
     public static ExecutorService executor;
     public static WikiMediatorServer server;
     public static WikiMediatorClient client;
@@ -21,9 +22,9 @@ public class Task4Tests {
     @BeforeAll
     public static void setupTests() {
         WikiMediator wm = new WikiMediator(24, 120);
-        executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newFixedThreadPool(12);
         try {
-            server = new WikiMediatorServer(9012, 10, wm);
+            server = new WikiMediatorServer(PORT, 10, wm);
             server.serve();
         } catch (IOException e) {
             e.printStackTrace();
@@ -32,12 +33,24 @@ public class Task4Tests {
 
     @Test
     public void initializeServerConnectClient() throws InterruptedException {
-        server.serve();
-        TimeUnit.SECONDS.sleep(3);
-        client = new WikiMediatorClient(LOCAL_HOST, 9012);
-        TimeUnit.SECONDS.sleep(3);
+        client = new WikiMediatorClient(LOCAL_HOST, PORT);
         int[] intArgs = {5};
         client.sendRequest(null, "search for Desire Path", "search", intArgs, "Desire Path");
         client.receiveResponse();
+    }
+
+    @Test
+    public void sendMultipleRequests() {
+        client = new WikiMediatorClient(LOCAL_HOST, PORT);
+        int[] intArgs = {5};
+        executor.submit(() ->
+                client.sendRequest(null, "search for Desire Path",
+                        "search", intArgs, "Desire Path"));
+        executor.submit(() ->
+                client.sendRequest(null, "search for Barack Obama",
+                        "search", intArgs, "Barack Obama"));
+        executor.submit(() ->
+                client.sendRequest(null, "getPage for Barack Obama",
+                        "getPage", intArgs, "Barack Obama"));
     }
 }
