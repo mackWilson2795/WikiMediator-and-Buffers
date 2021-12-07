@@ -2,7 +2,6 @@ package cpen221.mp3.fsftbuffer;
 
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Queue;
 
 public class FSFTBuffer<T extends Bufferable> {
 
@@ -35,6 +34,7 @@ public class FSFTBuffer<T extends Bufferable> {
     private final HashMap<String, Long> timeOutMap = new HashMap<>(); // TODO : thread safety
     private final int capacity;
     private final int timeout;
+    // TODO: how about storing a "lastCleanedAt" volatile variable - if we just cleaned it (exactly 0s) don't run clean
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -141,7 +141,7 @@ public class FSFTBuffer<T extends Bufferable> {
 
     private void removeLRU() {
         // TODO: check with team - potentially a bug here if this get called when buffer is empty (ie. concurrently or if buffer size = 0
-        if (LRUQueue.size() != 0){
+        if (LRUQueue.size() != 0) {
             String id = LRUQueue.removeFirst();
             lookUpMap.remove(id);
             timeOutMap.remove(id);

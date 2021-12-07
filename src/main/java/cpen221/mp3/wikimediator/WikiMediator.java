@@ -33,7 +33,7 @@ public class WikiMediator {
 
      */
 
-    public WikiMediator(int capacity, int stalenessInterval){
+    public WikiMediator(int capacity, int stalenessInterval) {
         wiki = new Wiki.Builder().build();
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
         countMap = new ConcurrentHashMap<>();
@@ -56,27 +56,27 @@ public class WikiMediator {
         return null;
     }
 
-    private void read(){
+    private void read() {
         //make iterations over allRequest syncronized
     }
 
-    private void write(){
+    private void write() {
         //""
     }
 
-    public List<String> search(String query, int limit){
+    public List<String> search(String query, int limit) {
         ArrayList<String> pageTitles = new ArrayList<>();
         pageTitles = wiki.search(query,limit);
         return pageTitles;
     }
 
-    public String getPage(String pageTitle){
+    public String getPage(String pageTitle) {
         String text = wiki.getPageText(pageTitle);
         cache.put(new WikiPage(pageTitle, text));
         return text;
     }
 
-    public List<String> zeitgeist(int limit){
+    public List<String> zeitgeist(int limit) {
         ArrayList<String> queries;
         synchronized (countMap) {
             queries = count(countMap);
