@@ -70,7 +70,10 @@ public class WikiMediator {
     }
 
     public List<String> search(String query, int limit){
-        allRequests.add(new SearchRequest())
+        synchronized (allRequests) {
+            allRequests.add(new SearchRequest());
+        }
+
         ArrayList<String> pageTitles = new ArrayList<>();
         pageTitles = wiki.search(query,limit);
         return pageTitles;
@@ -113,13 +116,14 @@ public class WikiMediator {
 
     public int windowedPeakLoad(int timeWindowInSeconds) { //left side close bound right side open?
 
-        Long referenceTime = allRequests.first().getTimeInSeconds();
+        Long referenceTime;
         int timeWindow = timeWindowInSeconds;
         int maxSize = 0;
         LinkedList <Request> window = new LinkedList<>();
         LinkedList<Request> iterator = new LinkedList<>();
         synchronized (allRequests) {
             iterator.addAll(allRequests);
+            referenceTime = allRequests.first().getTimeInSeconds();
         }
 
         while(!iterator.isEmpty() && (window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
