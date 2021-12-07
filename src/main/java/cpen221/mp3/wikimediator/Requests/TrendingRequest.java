@@ -7,8 +7,8 @@ public class TrendingRequest extends AbstractRequest {
 
     private final ArrayList<String> query = new ArrayList<>(2);
 
-    public TrendingRequest (Long timeInSeconds, int id, int timeLimitInSeconds, int maxItems) {
-        super(timeInSeconds, id, RequestType.TRENDING);
+    public TrendingRequest (Long timeInSeconds, int timeLimitInSeconds, int maxItems) {
+        super(timeInSeconds, RequestType.TRENDING);
         query.add(String.valueOf(timeLimitInSeconds));
         query.add(String.valueOf(maxItems));
     }

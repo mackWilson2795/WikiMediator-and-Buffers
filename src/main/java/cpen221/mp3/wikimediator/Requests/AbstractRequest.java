@@ -10,18 +10,10 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
     private final RequestType requestType;
     private final ArrayList<String> query = new ArrayList<>();
     private final Long timeInSeconds;
-    private final int id;
 
-    public AbstractRequest (Long timeInSeconds, int id, RequestType requestType) {
+    public AbstractRequest (Long timeInSeconds, RequestType requestType) {
         this.timeInSeconds = timeInSeconds;
         this.requestType = requestType;
-        this.id = id;
-    }
-
-    public AbstractRequest(Long timeInSeconds) {
-        this.timeInSeconds = timeInSeconds;
-        id = -1;
-        requestType = RequestType.REFERENCE;
     }
 
     public Long getTimeInSeconds(){
@@ -30,10 +22,6 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
 
     public RequestType getType(){
         return requestType;
-    }
-
-    public int getId() {
-        return id;
     }
 
     public List<String> getQuery() {

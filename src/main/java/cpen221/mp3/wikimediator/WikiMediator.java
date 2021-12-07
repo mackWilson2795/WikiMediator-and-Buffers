@@ -6,10 +6,7 @@ import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
-import cpen221.mp3.wikimediator.Requests.ReferenceRequest;
-import cpen221.mp3.wikimediator.Requests.Request;
-import cpen221.mp3.wikimediator.Requests.RequestType;
-import cpen221.mp3.wikimediator.Requests.SearchRequest;
+import cpen221.mp3.wikimediator.Requests.*;
 import kotlin.jvm.Synchronized;
 import org.fastily.jwiki.core.*;
 
@@ -45,7 +42,7 @@ public class WikiMediator {
     private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
         ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
         for (Request request : requests) {
-            if (request.getType() == RequestType.GETPAGE || request.getType() == RequestType.SEARCH) {
+            if (request.getType() == RequestType.GET_PAGE || request.getType() == RequestType.SEARCH) {
                 String query = request.getQuery().get(0);
                 if (keepCount.containsKey(query)) {
                     Integer count = keepCount.get(query);
@@ -70,8 +67,9 @@ public class WikiMediator {
     }
 
     public List<String> search(String query, int limit){
+
         synchronized (allRequests) {
-            allRequests.add(new SearchRequest());
+            allRequests.add(new SearchRequest(System.currentTimeMillis() / MS_CONVERSION, query, limit));
         }
 
         ArrayList<String> pageTitles = new ArrayList<>();
@@ -81,12 +79,20 @@ public class WikiMediator {
 
     public String getPage(String pageTitle){
 
+        synchronized (allRequests) {
+            allRequests.add(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle));
+        }
+
         String text = wiki.getPageText(pageTitle);
         cache.put(new WikiPage(pageTitle, text));
         return text;
     }
 
     public List<String> zeitgeist(int limit){
+
+        synchronized (allRequests) {
+            allRequests.add(new ZeitgeistRequest(System.currentTimeMillis() / MS_CONVERSION, limit));
+        }
 
         ArrayList<String> queries;
         synchronized (countMap) {
@@ -107,6 +113,11 @@ public class WikiMediator {
     }
 
     public List<String> trending(int timeLimitInSeconds, int maxItems) {
+
+        synchronized (allRequests) {
+            allRequests.add(new TrendingRequest(System.currentTimeMillis() / MS_CONVERSION, timeLimitInSeconds, maxItems));
+        }
+
         SortedSet<Request> requestsInTimeWindow;
         synchronized (allRequests) { //inclusive?
             requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(System.currentTimeMillis() / MS_CONVERSION), new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION) - timeLimitInSeconds));
@@ -115,6 +126,10 @@ public class WikiMediator {
     }
 
     public int windowedPeakLoad(int timeWindowInSeconds) { //left side close bound right side open?
+
+        synchronized (allRequests) {
+            allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, timeWindowInSeconds));
+        }
 
         Long referenceTime;
         int timeWindow = timeWindowInSeconds;
@@ -149,6 +164,11 @@ public class WikiMediator {
 
 
     public int windowedPeakLoad(){
+
+        synchronized (allRequests) {
+            allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, DEFAULT_TIME_WINDOW_IN_SECONDS));
+        }
+
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
 }

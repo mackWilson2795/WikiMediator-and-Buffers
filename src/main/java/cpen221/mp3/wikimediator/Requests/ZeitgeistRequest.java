@@ -7,8 +7,8 @@ public class ZeitgeistRequest extends AbstractRequest {
 
     private final ArrayList<String> query = new ArrayList<>(1);
 
-    public ZeitgeistRequest(Long time, int id, int limit) {
-        super(time, id, RequestType.ZEITGEIST);
+    public ZeitgeistRequest(Long time, int limit) {
+        super(time, RequestType.ZEITGEIST);
         query.add(String.valueOf(limit));
     }
 
