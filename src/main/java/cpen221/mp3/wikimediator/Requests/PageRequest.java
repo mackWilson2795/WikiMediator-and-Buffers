@@ -9,8 +9,8 @@ public class PageRequest extends AbstractRequest {
 
     private final ArrayList<String> query = new ArrayList<>(1);
 
-    public PageRequest (Long timeInSeconds, int id, String title) {
-        super (timeInSeconds, id, RequestType.GETPAGE);
+    public PageRequest (Long timeInSeconds, String title) {
+        super (timeInSeconds, RequestType.GET_PAGE);
         query.add(title);
     }
 

@@ -14,4 +14,8 @@ public class WikiPage implements Bufferable {
     public String id() {
         return title;
     }
+
+    public String getText() {
+        return text;
+    }
 }

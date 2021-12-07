@@ -2,6 +2,10 @@ package cpen221.mp3.fsftbuffer;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class FSFTBuffer<T extends Bufferable> {
 
@@ -12,7 +16,6 @@ public class FSFTBuffer<T extends Bufferable> {
     public static final int DTIMEOUT = 3600;
 
     /* Conversion factor between milliseconds and seconds */
-    // TODO: Added this
     public static final int MS_CONVERSION = 1000;
 
     /* TODO: not a real abstraction function just me trying to understand variables
@@ -29,9 +32,26 @@ public class FSFTBuffer<T extends Bufferable> {
         For all Integer
      */
 
-    private final HashMap <String, T> lookUpMap = new HashMap<>(); // TODO : thread safety
-    private final LinkedList<String> LRUQueue = new LinkedList<>();
-    private final HashMap<String, Long> timeOutMap = new HashMap<>(); // TODO : thread safety
+    /* TODO: Thread Safety Argument
+        1. Immutable variables:
+        DSIZE, DTIMEOUT,MS_CONVERSION, capacity, and timeout are immutable constants that are thread safe.
+        2. Thread Safety Data Types:
+        why? lookUpMap, LRUDeque, and timeoutMap use thread safe ADT's that ensure thread safety.
+        3. Synchronization:
+        All methods are synchronized
+
+        What are the main problems:
+        1. statics are being used
+        2. quick fix - wrappers for collections
+        3. Large problem - cleaner function - could we use a state variable - maybe but unlikely
+        4. Due to cleaner function, synchronization of overall methods is best start
+        5. Synchronization of get, put, update, touch - either state variable or java.concurrent add on
+
+     */
+
+    private final ConcurrentHashMap<String, T> lookUpMap = new ConcurrentHashMap<>(); // TODO : thread safety //concurrent
+    private final LinkedBlockingDeque<String> LRUQueue = new LinkedBlockingDeque<>(); // TODO : thread safety //  synchronizedList(List<T> list);
+    private final ConcurrentHashMap<String, Long> timeOutMap = new ConcurrentHashMap<>(); // TODO : thread safety //concurrent
     private final int capacity;
     private final int timeout;
     // TODO: how about storing a "lastCleanedAt" volatile variable - if we just cleaned it (exactly 0s) don't run clean
@@ -57,24 +77,29 @@ public class FSFTBuffer<T extends Bufferable> {
         this(DSIZE, DTIMEOUT);
     }
 
+    //clean is a writing function: W, Reading functions are denoted by R
+
     /**
      * Add a value to the buffer.
      * If the buffer is full then remove the least recently accessed
      * object to make room for the new object.
      */
     public boolean put(T t) {
-        clean();
-        // TODO: capacity == 0 - messy fix, need to talk about how to approach this
-        // I think maybe this should only return true if it for sure adds
-        if (lookUpMap.containsKey(t.id()) || capacity == 0) { // TODO : thread safety
-            return false;
+        synchronized (this) {
+            clean();
+            //Affects Thread Safety, if we clean during a contains in another thread: 1. lock it (method or hopefully limit to clean) 2.
+            if (lookUpMap.containsKey(
+                t.id())) { // TODO : thread safety ++ Use concurent/synchronization //WR
+                return false;
+            }
+            if (LRUQueue.size() == capacity) { // TODO : thread safety ++ concurrent datatype //WR
+                removeLRU(); // more threads than capacity execute this at the same time - breaks rep     //WW
+            }
+            add(t); //WW but this is okay since clean removes old objects, and add will work regardless if they both execute at the same time
+            return true;
         }
-        if (LRUQueue.size() == capacity) { // TODO : thread safety
-            removeLRU();
-        }
-        add(t);
-        return true;
     }
+//Final suggestion: Wrap whole put block into a synchro block, if execution lacks re-write whole method using a boolean to hold state and stop clean from executing
 
     /**
      * Update the last refresh time for the object with the provided id.
@@ -85,12 +110,16 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return true if successful and false otherwise
      */
     public boolean touch(String id) {
-        clean();
-        if (lookUpMap.containsKey(id)) { // TODO : thread safety
-            timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) + timeout);
-            return true;
+        synchronized (this){
+            clean(); // shouldn't clean during put into map
+            if (lookUpMap
+                .containsKey(id)) { // TODO : thread safety ++ Use concurent/synchronization  //WR
+                timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) +
+                    timeout); // TODO : thread safety ++ Use concurent/synchronization //WW
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     /**
@@ -99,13 +128,16 @@ public class FSFTBuffer<T extends Bufferable> {
      * buffer
      */
     public Object get(String id) throws NotFoundException {
-        clean();
-        if (!lookUpMap.containsKey(id)) { //TODO : thread safety - object gets removed through put
-            throw new NotFoundException("Object is not in the cache!");
+        synchronized(this) {
+            clean();
+            if (!lookUpMap
+                .containsKey(id)) { //TODO : thread safety - object gets removed through put //WR
+                throw new NotFoundException("Object is not in the cache!");
+            }
+            LRUQueue.remove(id); // double remove, clean occurs just before, taking it out  WW
+            LRUQueue.addFirst(id); // double add, add then remove,    WW
+            return lookUpMap.get(id);
         }
-        LRUQueue.remove(id);
-        LRUQueue.addFirst(id);
-        return lookUpMap.get(id);
     }
 
     /**
@@ -117,31 +149,37 @@ public class FSFTBuffer<T extends Bufferable> {
      * @return true if successful and false otherwise
      */
     public boolean update(T t) {
-        clean();
-        if (lookUpMap.containsKey(t.id())) { // TODO : thread safety
-            lookUpMap.put(t.id(), t);
-            timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
-            return true;
+        synchronized (this) {
+            clean();
+            if (lookUpMap.containsKey(t.id())) { // TODO : thread safety  WR
+                lookUpMap.put(t.id(), t);   //WW
+                timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout); //WW
+                return true;
+            }
+            return false;
         }
-        return false;
     }
+
+
+    //Large threat to concurrency
 
     /** TODO: temp spec
      * Removes all expired entries in the FSFTBuffer.
      */
-    private void clean() { // TODO : Thread Safety
-        for (String id : timeOutMap.keySet()) {
-            long time = System.currentTimeMillis() / MS_CONVERSION;
-            if (timeOutMap.get(id) <= time) {
-                timeOutMap.remove(id);
-                LRUQueue.remove(lookUpMap.remove(id));
+    private void clean() {
+        synchronized(this) {
+            for (String id : timeOutMap.keySet()) {
+                long time = System.currentTimeMillis() / MS_CONVERSION;
+                if (timeOutMap.get(id) >= time) {
+                    timeOutMap.remove(id);
+                    LRUQueue.remove(lookUpMap.remove(id));
+                }
             }
         }
-    }
+    } // why is there no lookup map
 
     private void removeLRU() {
-        // TODO: check with team - potentially a bug here if this get called when buffer is empty (ie. concurrently or if buffer size = 0
-        if (LRUQueue.size() != 0) {
+        synchronized(this) {
             String id = LRUQueue.removeFirst();
             lookUpMap.remove(id);
             timeOutMap.remove(id);
@@ -149,8 +187,10 @@ public class FSFTBuffer<T extends Bufferable> {
     }
 
     private void add(T t) {
-        LRUQueue.addLast(t.id()); // TODO : Thread Safety last object
-        lookUpMap.put(t.id(), t);
-        timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
+        synchronized(this) {
+            LRUQueue.addLast(t.id());
+            lookUpMap.put(t.id(), t);
+            timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
+        }
     }
 }
