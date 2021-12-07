@@ -13,10 +13,10 @@ import java.util.TreeSet;
 import java.util.concurrent.*;
 
 public class WikiMediatorServer {
-    private final int maxClients;
-    private int currentThreads = 0;
     private final ServerSocket serverSocket;
     private final WikiMediator wikiMediator;
+    ExecutorService threadPoolExecutor;
+    ExecutorService serverExecutor;
     // TODO: create premade "success" and "failed" JsonObjects
 
     /**
@@ -30,29 +30,33 @@ public class WikiMediatorServer {
     public WikiMediatorServer(int port, int n,
                               WikiMediator wikiMediator) throws IOException {
         serverSocket = new ServerSocket(port);
-        maxClients = n;
+        threadPoolExecutor = Executors.newFixedThreadPool(n);
+        serverExecutor = Executors.newSingleThreadExecutor();
         // TODO: copy constructor here? - rep exposure
         this.wikiMediator = wikiMediator;
     }
 
     public void serve() {
         // TODO: wikimediator inside try with resources?
-        try {
-            while (true) {
-                final Socket clientSocket = serverSocket.accept();
-                if (currentThreads < maxClients){
-                    createNewThread(clientSocket);
+        serverExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        final Socket clientSocket = serverSocket.accept();
+                        // TODO: going to implement w/ executor - double check tmrw
+                        createNewThread(clientSocket);
+                    }
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                    throw new RuntimeException("Error connecting to ServerSocket.");
                 }
             }
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-            throw new RuntimeException("Error connecting to ServerSocket.");
-        }
+        });
     }
 
     private void createNewThread (Socket socket) {
-        currentThreads++;
-        Thread handler = new Thread(new Runnable() {
+        threadPoolExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -68,8 +72,6 @@ public class WikiMediatorServer {
                 }
             }
         });
-        handler.start();
-        currentThreads--; // TODO: double check
     }
 
     private void handleClient(Socket socket) throws IOException {
@@ -93,7 +95,10 @@ public class WikiMediatorServer {
                 // Catch "stop"
                 if (Objects.equals(request.get("type").toString(), "stop")){
                     response.add("response", gson.toJsonTree("bye"));
-                    close();
+                    outputStream.println(gson.toJson(response));
+                    // TODO: think about this - can't call executor termination from inside a thread the executor controls.
+                    Thread closingThread = new Thread(close());
+                    closingThread.start();
                 }
 
                 // Read JSON
@@ -102,7 +107,8 @@ public class WikiMediatorServer {
                     result  = handleRequest(request);
                 } catch (TimeoutException | ExecutionException | InterruptedException  e) {
                     if (e instanceof TimeoutException) {
-                        // TODO: send failed notice
+                        response.add("status", gson.toJsonTree("failed"));
+                        response.add("response", gson.toJsonTree("Operation timed out"));
                     } else {
                         e.printStackTrace();
                         throw new RuntimeException(e);
@@ -125,7 +131,6 @@ public class WikiMediatorServer {
 
     private Object handleRequest(JsonObject request) throws
             TimeoutException, ExecutionException, InterruptedException {
-        ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO: remove?
         Future<Object> future = new FutureTask<>(new RequestHandler(request));
 
         if (request.get("timeout")  != null) {
@@ -135,20 +140,48 @@ public class WikiMediatorServer {
         return future.get();
     }
 
-    private void close() {
-        // TODO: this
-        // Call close() in wikiMediator -- this writes to file
-        // Close serverSocket -- is this enough?
+    private Runnable close() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    threadPoolExecutor.shutdown();
+                    if (!threadPoolExecutor.awaitTermination(20, TimeUnit.SECONDS)){ // TODO: consider time to wait
+                        threadPoolExecutor.shutdownNow();
+                    }
+                } catch (InterruptedException ignored) {
+                    /* This exception is ignored, termination can continue... */
+                }
+
+                try {
+                    serverExecutor.shutdown();
+                    if (!serverExecutor.awaitTermination(3, TimeUnit.SECONDS)){
+                        serverExecutor.shutdownNow();
+                    }
+                } catch (InterruptedException ignored) {
+                    /* This exception is ignored  */
+                }
+
+                try {
+                    serverSocket.close();
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
+
+                // wikiMediator.close();
+                // TODO: implement close() here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            }
+        };
     }
 
     class RequestHandler implements Callable<Object> {
-        private JsonObject request;
+        private final JsonObject request;
 
         public RequestHandler(JsonObject request) {
             this.request = request;
         }
 
-        public Object call() {
+        public Object call() throws TimeoutException { // TODO: TimeoutException
             String requestType = request.get("type").toString();
             Object result = null; // TODO: null? idk...
 
@@ -158,16 +191,20 @@ public class WikiMediatorServer {
                     result = wikiMediator.search(
                             request.get("query").toString(),
                             request.get("limit").getAsInt());
+                    break;
                 case "getPage":
                     result = wikiMediator.getPage(
                             request.get("pageTitle").toString());
+                    break;
                 case "zeitgeist":
                     result = wikiMediator.zeitgeist(
                             request.get("limit").getAsInt());
+                    break;
                 case "trending":
                     result = wikiMediator.trending(
                             request.get("timeLimitInSeconds").getAsInt(),
                             request.get("maxItems").getAsInt());
+                    break;
                 case "windowedPeakLoad":
                     if (request.has("timeWindowInSeconds")) {
                         result = wikiMediator.windowedPeakLoad(
@@ -175,6 +212,7 @@ public class WikiMediatorServer {
                     } else {
                         result = wikiMediator.windowedPeakLoad();
                     }
+                    break;
                 case "shortestPath":
                     break; // TODO: implement this !!!
             }

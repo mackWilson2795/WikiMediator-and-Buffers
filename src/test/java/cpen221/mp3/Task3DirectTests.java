@@ -15,6 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public class Task3DirectTests {
 
+
+    // TODO: test windowedPeakLoad with empty structure
+    // TODO: test windowed peak load with all requests at one time
+    // TODO: test search with input 0
+
+
     private static ScheduledExecutorService scheduledExecutorService;
     private static WikiMediator wikiMediator1;
     private static String desirePath = "Trampling studies " +
