@@ -18,6 +18,9 @@ public class WikiMediator {
     private static final int MS_CONVERSION = 1000;
     private static final int DEFAULT_TIME_WINDOW_IN_SECONDS = 30;
 
+    private final File localDir = new File("local");
+    private final File allRequestsFile = new File("local/allRequests.txt");
+    private final File countMapFile = new File("local/countMap.txt");
     private final Wiki wiki = new Wiki.Builder().build();
     private final FSFTBuffer<WikiPage> cache;
     private final ConcurrentHashMap<String, Integer> countMap = new ConcurrentHashMap<>();
@@ -55,11 +58,33 @@ public class WikiMediator {
         return keepCount;
     }
 
-    private SortedSet<Request> read() { //file reader how does Gson handle nested objects, parser Api
-        SortedSet<Request> requests = new TreeSet<>();
+    private void read() { //file reader how does Gson handle nested objects, parser Api\
         Gson json = new Gson();
-        String bye = json.fromJson("Hello", String.class);
-        return new TreeSet<Request>();
+        
+        try {
+            if (allRequestsFile.exists()) {
+                BufferedReader allRequestsReader = new BufferedReader(new FileReader(allRequestsFile));
+                JsonArray allRequestsJsonArray = JsonParser.parseReader(allRequestsReader).getAsJsonArray();
+
+                Iterator<JsonElement> iterator = allRequestsJsonArray.iterator();
+
+                while (iterator.hasNext()) {
+                    JsonObject next = iterator.next().getAsJsonObject();
+                    allRequests.add(parseRequest(next));
+                }
+            }
+            if (countMapFile.exists()) { 
+                BufferedReader countMapReader = new BufferedReader(new FileReader(countMapFile));
+                countMap.putAll(json.fromJson(countMapReader, ConcurrentHashMap.class));
+                // TODO: mapping to double
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+   //    SortedSet<Request> requests = new TreeSet<>();
+   //    Gson json = new Gson();
+   //    String bye = json.fromJson("Hello", String.class);
+   //    return new TreeSet<Request>();
     }
     private Request parseRequest(JsonObject next) {
         JsonArray queriesJson = next.getAsJsonArray("queries");
