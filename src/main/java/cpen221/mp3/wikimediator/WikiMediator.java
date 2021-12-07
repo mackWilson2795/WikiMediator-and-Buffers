@@ -5,7 +5,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
+import cpen221.mp3.fsftbuffer.Bufferable;
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
+import cpen221.mp3.fsftbuffer.NotFoundException;
 import cpen221.mp3.wikimediator.Requests.*;
 import kotlin.jvm.Synchronized;
 import org.fastily.jwiki.core.*;
@@ -59,7 +61,7 @@ public class WikiMediator {
         SortedSet<Request> requests = new TreeSet<>();
         Gson json = new Gson();
         String bye = json.fromJson("Hello", String.class);
-
+        return new TreeSet<Request>();
     }
 
     private void write() {
@@ -67,9 +69,16 @@ public class WikiMediator {
     }
 
     public List<String> search(String query, int limit){
-
         synchronized (allRequests) {
             allRequests.add(new SearchRequest(System.currentTimeMillis() / MS_CONVERSION, query, limit));
+        }
+        synchronized (countMap) {
+            if(countMap.containsKey(query)) {
+                int count = countMap.get(query);
+                countMap.put(query, ++count);
+            } else {
+                countMap.put(query, 1);
+            }
         }
 
         ArrayList<String> pageTitles = new ArrayList<>();
@@ -78,14 +87,27 @@ public class WikiMediator {
     }
 
     public String getPage(String pageTitle){
-
         synchronized (allRequests) {
             allRequests.add(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle));
         }
-
-        String text = wiki.getPageText(pageTitle);
-        cache.put(new WikiPage(pageTitle, text));
-        return text;
+        synchronized (countMap) {
+            if(countMap.containsKey(pageTitle)) {
+                int count = countMap.get(pageTitle);
+                countMap.put(pageTitle, ++count);
+            } else {
+                countMap.put(pageTitle, 1);
+            }
+        }
+        try {
+            WikiPage page = (WikiPage) cache.get(pageTitle);
+            return page.getText();
+        } catch (NotFoundException e) {
+            String text = wiki.getPageText(pageTitle);
+            synchronized (cache) {
+                cache.put(new WikiPage(pageTitle, text));
+            }
+            return text;
+        }
     }
 
     public List<String> zeitgeist(int limit){
@@ -125,35 +147,33 @@ public class WikiMediator {
         return trim(count(append(requestsInTimeWindow)), maxItems);
     }
 
-    public int windowedPeakLoad(int timeWindowInSeconds) { //left side close bound right side open?
-
-        synchronized (allRequests) {
-            allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, timeWindowInSeconds));
-        }
-
-        Long referenceTime;
+    public int windowedPeakLoad(int timeWindowInSeconds) {
+        Long referenceTime = 0L;
         int timeWindow = timeWindowInSeconds;
         int maxSize = 0;
-        LinkedList <Request> window = new LinkedList<>();
-        LinkedList<Request> iterator = new LinkedList<>();
+        LinkedList<Request> window = new LinkedList<>();
+        LinkedList<Request> requestList = new LinkedList<>();
         synchronized (allRequests) {
-            iterator.addAll(allRequests);
-            referenceTime = allRequests.first().getTimeInSeconds();
+            allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION,
+                    timeWindowInSeconds));
+            requestList.addAll(allRequests);
         }
 
-        while(!iterator.isEmpty() && (window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
-            window.addLast(iterator.pop());
-        }
+        referenceTime = requestList.peek().getTimeInSeconds();
+
+        while(!requestList.isEmpty() && (window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
+            window.addLast(requestList.pop());
+        } //TODO: find a way to not repeat
 
         maxSize = window.size();
 
-        while(!iterator.isEmpty()){
-            while(window.peek().getTimeInSeconds() == referenceTime){
+        while(!requestList.isEmpty()){
+            while(!window.isEmpty() && Objects.equals(window.peek().getTimeInSeconds(), referenceTime)) {
                 window.pop();
             }
             referenceTime = window.peek().getTimeInSeconds();
-            while(!iterator.isEmpty() && iterator.peek().getTimeInSeconds() - referenceTime < timeWindow){
-               window.addLast(iterator.pop());
+            while(!requestList.isEmpty() && requestList.peek().getTimeInSeconds() - referenceTime < timeWindow){
+               window.addLast(requestList.pop());
             }
             if (window.size() > maxSize) {
                maxSize = window.size();
