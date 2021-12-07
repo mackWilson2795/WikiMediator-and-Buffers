@@ -5,16 +5,16 @@ import java.util.List;
 
 public class ZeitgeistRequest extends AbstractRequest {
 
-    private final ArrayList<String> query = new ArrayList<>(1);
+    private final ArrayList<String> queries = new ArrayList<>(1);
 
     public ZeitgeistRequest(Long time, int limit) {
         super(time, RequestType.ZEITGEIST);
-        query.add(String.valueOf(limit));
+        queries.add(String.valueOf(limit));
     }
 
     @Override
-    public List<String> getQuery() {
-        return query;
+    public List<String> getQueries() {
+        return queries;
     }
 
 }

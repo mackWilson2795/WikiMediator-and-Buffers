@@ -8,7 +8,7 @@ import java.util.List;
 public abstract class AbstractRequest implements Request, Comparable<Request> {
 
     private final RequestType requestType;
-    private final ArrayList<String> query = new ArrayList<>();
+    private final transient ArrayList<String> queries = new ArrayList<>();
     private final Long timeInSeconds;
 
     public AbstractRequest (Long timeInSeconds, RequestType requestType) {
@@ -24,8 +24,8 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
         return requestType;
     }
 
-    public List<String> getQuery() {
-        return query;
+    public List<String> getQueries() {
+        return queries;
     }
 
     @Override

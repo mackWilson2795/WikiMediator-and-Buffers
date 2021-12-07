@@ -5,17 +5,17 @@ import java.util.List;
 
 public class TrendingRequest extends AbstractRequest {
 
-    private final ArrayList<String> query = new ArrayList<>(2);
+    private final ArrayList<String> queries = new ArrayList<>(2);
 
     public TrendingRequest (Long timeInSeconds, int timeLimitInSeconds, int maxItems) {
         super(timeInSeconds, RequestType.TRENDING);
-        query.add(String.valueOf(timeLimitInSeconds));
-        query.add(String.valueOf(maxItems));
+        queries.add(String.valueOf(timeLimitInSeconds));
+        queries.add(String.valueOf(maxItems));
     }
 
     @Override
-    public List<String> getQuery() {
-        return query;
+    public List<String> getQueries() {
+        return queries;
     }
 
 }

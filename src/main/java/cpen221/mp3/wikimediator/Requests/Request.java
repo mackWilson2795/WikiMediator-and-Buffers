@@ -7,7 +7,7 @@ import java.util.List;
 public interface Request extends Comparable<Request>{
 
     public RequestType getType();
-    public List<String> getQuery();
+    public List<String> getQueries();
     public Long getTimeInSeconds();
 
     @Override
