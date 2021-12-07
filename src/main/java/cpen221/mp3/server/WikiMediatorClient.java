@@ -51,6 +51,7 @@ public class WikiMediatorClient {
             request.add("timeout", json.toJsonTree(timeout));
         }
 
+        // TODO: syntax correctness
         switch (type){
             case "search" :
                 request.add("query", json.toJsonTree(strings[0]));
@@ -63,12 +64,12 @@ public class WikiMediatorClient {
                 request.add("limit", json.toJsonTree(intArgs[0]));
                 break;
             case "trending" :
-                request.add("timeLimitInSeconds", json.toJsonTree(intArgs[0]));
-                request.add("maxItems", json.toJsonTree(intArgs[1]));
+                request.add("maxItems", json.toJsonTree(intArgs[0]));
+                request.add("timeLimitInSeconds", json.toJsonTree(intArgs[1]));
                 break;
             case "windowedPeakLoad" :
                 if (intArgs.length != 0){
-                    request.add("timeWindowInSeconds", json.toJsonTree(intArgs[0]));
+                    request.add("timeWindowInSeconds", json.toJsonTree(intArgs[1]));
                 }
                 break;
             case "shortestPath" :

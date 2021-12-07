@@ -16,5 +16,4 @@ public class ZeitgeistRequest extends AbstractRequest {
     public List<String> getQuery() {
         return query;
     }
-
 }

@@ -88,6 +88,9 @@ public class WikiMediator {
 
     public String getPage(String pageTitle){
         synchronized (allRequests) {
+            if (allRequests.contains(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle))){
+                int x = 2;
+            }
             allRequests.add(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle));
         }
         synchronized (countMap) {
@@ -142,7 +145,7 @@ public class WikiMediator {
 
         SortedSet<Request> requestsInTimeWindow;
         synchronized (allRequests) { //inclusive?
-            requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(System.currentTimeMillis() / MS_CONVERSION), new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION) - timeLimitInSeconds));
+            requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(System.currentTimeMillis() / MS_CONVERSION - timeLimitInSeconds), new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION)));
         }
         return trim(count(append(requestsInTimeWindow)), maxItems);
     }
@@ -159,9 +162,12 @@ public class WikiMediator {
             requestList.addAll(allRequests);
         }
 
+        // TODO: always one request?
         referenceTime = requestList.peek().getTimeInSeconds();
+        window.addLast(requestList.pop());
+        Long nextTime;
 
-        while(!requestList.isEmpty() && (window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
+        while(!requestList.isEmpty() && (int)(window.peekLast().getTimeInSeconds() - referenceTime) < timeWindowInSeconds){
             window.addLast(requestList.pop());
         } //TODO: find a way to not repeat
 

@@ -172,7 +172,7 @@ public class FSFTBuffer<T extends Bufferable> {
         synchronized(this) {
             for (String id : timeOutMap.keySet()) {
                 long time = System.currentTimeMillis() / MS_CONVERSION;
-                if (timeOutMap.get(id) >= time) {
+                if (timeOutMap.get(id) <= time) {
                     timeOutMap.remove(id);
                     LRUQueue.remove(lookUpMap.remove(id));
                 }

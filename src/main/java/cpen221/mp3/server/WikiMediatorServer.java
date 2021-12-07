@@ -38,7 +38,6 @@ public class WikiMediatorServer {
     }
 
     public void serve() {
-        // TODO: wikimediator inside try with resources?
         serverExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -98,7 +97,6 @@ public class WikiMediatorServer {
                 if (Objects.equals(request.get("type").toString(), "stop")){
                     response.add("response", gson.toJsonTree("bye"));
                     outputStream.println(gson.toJson(response));
-                    // TODO: think about this - can't call executor termination from inside a thread the executor controls.
                     Thread closingThread = new Thread(close());
                     closingThread.start();
                 }
@@ -120,7 +118,6 @@ public class WikiMediatorServer {
                 // Receive request
                 // Write JSON response
                 if (result != null){
-                    // TODO != null????
                     response.add("status", gson.toJsonTree("success"));
                     response.add("response", gson.toJsonTree(result));
                 }
@@ -141,7 +138,7 @@ public class WikiMediatorServer {
             future.get(request.get("timeout").getAsLong(), TimeUnit.SECONDS);
         }
 
-        return future.get(); // TODO: getting stuck here?
+        return future.get();
     }
 
     private Runnable close() {
@@ -154,16 +151,16 @@ public class WikiMediatorServer {
                         threadPoolExecutor.shutdownNow();
                     }
                 } catch (InterruptedException ignored) {
-                    /* This exception is ignored, termination can continue... */
+                    threadPoolExecutor.shutdownNow();
                 }
 
                 try {
                     serverExecutor.shutdown();
-                    if (!serverExecutor.awaitTermination(3, TimeUnit.SECONDS)){
+                    if (!serverExecutor.awaitTermination(2, TimeUnit.SECONDS)){
                         serverExecutor.shutdownNow();
                     }
                 } catch (InterruptedException ignored) {
-                    /* This exception is ignored  */
+                    serverExecutor.shutdownNow();
                 }
 
                 try {
@@ -221,7 +218,7 @@ public class WikiMediatorServer {
                     break; // TODO: implement this !!!
             }
 
-            return result; // TODO: fix
+            return result;
         }
     }
 }

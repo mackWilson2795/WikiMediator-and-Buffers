@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.*;
@@ -40,17 +41,53 @@ public class Task4Tests {
     }
 
     @Test
-    public void sendMultipleRequests() {
+    public void sendMultipleRequestsNoTimeout() throws InterruptedException, ExecutionException {
         client = new WikiMediatorClient(LOCAL_HOST, PORT);
-        int[] intArgs = {5};
+        // intArgs[0] is number of results to return
+        // intArgs[1] is timeWindow
+        int[] intArgs = {5, 3};
+        ArrayList<String> results = new ArrayList<>();
         executor.submit(() ->
                 client.sendRequest(null, "search for Desire Path",
                         "search", intArgs, "Desire Path"));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
         executor.submit(() ->
                 client.sendRequest(null, "search for Barack Obama",
                         "search", intArgs, "Barack Obama"));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
         executor.submit(() ->
                 client.sendRequest(null, "getPage for Barack Obama",
                         "getPage", intArgs, "Barack Obama"));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        executor.submit(() ->
+                client.sendRequest(null, "getPage for Barack Obama",
+                        "getPage", intArgs, "Barack Obama"));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        executor.submit(() ->
+                client.sendRequest(null, "zeitgeist",
+                        "zeitgeist", intArgs));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        executor.submit(() ->
+                client.sendRequest(null, "trending",
+                        "trending", intArgs));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        TimeUnit.SECONDS.sleep(5);
+        executor.submit(() ->
+                client.sendRequest(null, "search for Barack Obama",
+                        "search", intArgs, "Barack Obama"));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        executor.submit(() ->
+                client.sendRequest(null, "trending",
+                        "windowedPeakLoad", intArgs));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        int[] intArgEmpty = new int[]{};
+        executor.submit(() ->
+                client.sendRequest(null, "trending",
+                        "windowedPeakLoad", intArgEmpty));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
     }
+
+    //TODO: test with long timeout
+    //TODO: test with short timeout
+    // weird bug??
 }
