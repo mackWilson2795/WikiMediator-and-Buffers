@@ -77,6 +77,8 @@ public class WikiMediatorClient {
                 break;
         }
 
-        outputStream.println(request);
+        System.out.println(request);
+        outputStream.print(request + "\n");
+        outputStream.flush();
     }
 }

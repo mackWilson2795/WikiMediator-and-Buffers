@@ -18,6 +18,7 @@ public class WikiMediatorServer {
     ExecutorService threadPoolExecutor;
     ExecutorService serverExecutor;
     // TODO: create premade "success" and "failed" JsonObjects
+    // TODO: should not accept a new connection unless a thread is free
 
     /**
      * Start a server at a given port number, with the ability to process
@@ -43,6 +44,7 @@ public class WikiMediatorServer {
             public void run() {
                 try {
                     while (true) {
+                        System.out.println("Waiting for client.."); // TODO: temp
                         final Socket clientSocket = serverSocket.accept();
                         // TODO: going to implement w/ executor - double check tmrw
                         createNewThread(clientSocket);
@@ -85,6 +87,7 @@ public class WikiMediatorServer {
                 PrintWriter outputStream = new PrintWriter(new OutputStreamWriter
                         (socket.getOutputStream()));
              ) {
+            System.out.println("Client connected..."); // TODO: temp
             while ((nextLine = inputStream.readLine()) != null) {
                 // Request -> JSON
                 JsonObject request = gson.fromJson(nextLine, JsonObject.class);
@@ -124,20 +127,22 @@ public class WikiMediatorServer {
                 }
 
                 // Send response
-                outputStream.println(gson.toJson(response));
+                outputStream.print(gson.toJson(response) + "\n");
+                outputStream.flush();
             }
         }
     }
 
     private Object handleRequest(JsonObject request) throws
             TimeoutException, ExecutionException, InterruptedException {
-        Future<Object> future = new FutureTask<>(new RequestHandler(request));
+        FutureTask<Object> future = new FutureTask<>(new RequestHandler(request));
+        future.run();
 
         if (request.get("timeout")  != null) {
             future.get(request.get("timeout").getAsLong(), TimeUnit.SECONDS);
         }
 
-        return future.get();
+        return future.get(); // TODO: getting stuck here?
     }
 
     private Runnable close() {
@@ -146,7 +151,7 @@ public class WikiMediatorServer {
             public void run() {
                 try {
                     threadPoolExecutor.shutdown();
-                    if (!threadPoolExecutor.awaitTermination(20, TimeUnit.SECONDS)){ // TODO: consider time to wait
+                    if (!threadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)){ // TODO: consider time to wait
                         threadPoolExecutor.shutdownNow();
                     }
                 } catch (InterruptedException ignored) {
@@ -181,31 +186,31 @@ public class WikiMediatorServer {
             this.request = request;
         }
 
-        public Object call() throws TimeoutException { // TODO: TimeoutException
+        public Object call() { // TODO: TimeoutException
             String requestType = request.get("type").toString();
             Object result = null; // TODO: null? idk...
 
             switch (requestType) {
                 // TODO: double check spelling of all entries etc...
-                case "search":
+                case "\"search\"":
                     result = wikiMediator.search(
                             request.get("query").toString(),
                             request.get("limit").getAsInt());
                     break;
-                case "getPage":
+                case "\"getPage\"":
                     result = wikiMediator.getPage(
                             request.get("pageTitle").toString());
                     break;
-                case "zeitgeist":
+                case "\"zeitgeist\"":
                     result = wikiMediator.zeitgeist(
                             request.get("limit").getAsInt());
                     break;
-                case "trending":
+                case "\"trending\"":
                     result = wikiMediator.trending(
                             request.get("timeLimitInSeconds").getAsInt(),
                             request.get("maxItems").getAsInt());
                     break;
-                case "windowedPeakLoad":
+                case "\"windowedPeakLoad\"":
                     if (request.has("timeWindowInSeconds")) {
                         result = wikiMediator.windowedPeakLoad(
                                 request.get("timeWindowInSeconds").getAsInt());
