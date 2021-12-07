@@ -18,6 +18,8 @@ public class FSFTBuffer<T extends Bufferable> {
     /* Conversion factor between milliseconds and seconds */
     public static final int MS_CONVERSION = 1000;
 
+    // TODO: we can make timeout + capacity > 0 as preconditions
+
     /* TODO: not a real abstraction function just me trying to understand variables
         Abstraction Function:
         lookUpMap: id -> T
