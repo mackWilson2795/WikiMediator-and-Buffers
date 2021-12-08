@@ -5,17 +5,28 @@ import java.util.List;
 
 public class TrendingRequest extends AbstractRequest {
 
-    private final ArrayList<String> query = new ArrayList<>(2);
+    private final ArrayList<String> queries = new ArrayList<>(2);
+
+    /*
+     * Abstraction Function :
+     *
+     * queries = The list of all arguments used for this request
+     * */
 
     public TrendingRequest (Long timeInSeconds, int timeLimitInSeconds, int maxItems) {
         super(timeInSeconds, RequestType.TRENDING);
-        query.add(String.valueOf(timeLimitInSeconds));
-        query.add(String.valueOf(maxItems));
+        queries.add(String.valueOf(timeLimitInSeconds));
+        queries.add(String.valueOf(maxItems));
     }
 
+    /**
+     * Retrieves the arguments used for this request
+     *
+     * @return a List of arguments used for this request
+     */
     @Override
-    public List<String> getQuery() {
-        return query;
+    public List<String> getQueries() {
+        return queries;
     }
 
 }

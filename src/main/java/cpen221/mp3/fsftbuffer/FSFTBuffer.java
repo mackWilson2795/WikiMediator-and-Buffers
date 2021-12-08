@@ -1,15 +1,12 @@
 package cpen221.mp3.fsftbuffer;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import cpen221.mp3.fsftbuffer.Exceptions.NotFoundException;
+import cpen221.mp3.wikimediator.Bufferable.Bufferable;
+
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class FSFTBuffer<T extends Bufferable> {
-
-
 
     /* the default buffer size is 32 objects */
     public static final int DSIZE = 32;
@@ -19,6 +16,8 @@ public class FSFTBuffer<T extends Bufferable> {
 
     /* Conversion factor between milliseconds and seconds */
     public static final int MS_CONVERSION = 1000;
+
+    // TODO: we can make timeout + capacity > 0 as preconditions
 
     /* TODO: not a real abstraction function just me trying to understand variables
         Abstraction Function:
@@ -60,6 +59,7 @@ public class FSFTBuffer<T extends Bufferable> {
     private final ConcurrentHashMap<String, Long> timeOutMap = new ConcurrentHashMap<>();
     private final int capacity;
     private final int timeout;
+    // TODO: how about storing a "lastCleanedAt" volatile variable - if we just cleaned it (exactly 0s) don't run clean
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -156,20 +156,26 @@ public class FSFTBuffer<T extends Bufferable> {
      * Removes all expired entries in the FSFTBuffer.
      */
     private void clean() {
-        for (String id : timeOutMap.keySet()) {
-            long time = System.currentTimeMillis() / MS_CONVERSION;
-            if (timeOutMap.get(id) <= time) {
-                timeOutMap.remove(id);
-                LRUQueue.remove(lookUpMap.remove(id));
+
+        synchronized(this) {
+            for (String id : timeOutMap.keySet()) {
+                long time = System.currentTimeMillis() / MS_CONVERSION;
+                if (timeOutMap.get(id) <= time) {
+                    timeOutMap.remove(id);
+                    LRUQueue.remove(lookUpMap.remove(id));
+                }
             }
         }
     }
 
     private void removeLRU() {
-        if(LRUQueue.size() > 0) {
-            String id = LRUQueue.removeFirst();
-            lookUpMap.remove(id);
-            timeOutMap.remove(id);
+
+        synchronized(this) {
+            if (LRUQueue.size() > 0) {
+                String id = LRUQueue.removeFirst();
+                lookUpMap.remove(id);
+                timeOutMap.remove(id);
+            }
         }
     }
 

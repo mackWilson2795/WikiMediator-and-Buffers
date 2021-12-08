@@ -1,4 +1,4 @@
-package cpen221.mp3.fsftbuffer;
+package cpen221.mp3.wikimediator.Bufferable;
 
 public interface Bufferable {
 
