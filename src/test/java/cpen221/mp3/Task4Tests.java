@@ -1,16 +1,20 @@
 package cpen221.mp3;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import cpen221.mp3.server.WikiMediatorClient;
 import cpen221.mp3.server.WikiMediatorServer;
 import cpen221.mp3.wikimediator.WikiMediator;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
+import java.io.CharArrayReader;
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class Task4Tests {
@@ -20,6 +24,10 @@ public class Task4Tests {
     public static ExecutorService executor;
     public static WikiMediatorServer server;
     public static WikiMediatorClient client;
+    public static WikiMediatorClient client2;
+    public static Gson json = new Gson();
+    private static final File allRequestsFile = new File("local/allRequests.txt");
+    private static final File countMapFile = new File("local/countMap.txt");
 
     @BeforeAll
     public static void setupTests() {
@@ -33,9 +41,22 @@ public class Task4Tests {
         }
     }
 
+    @AfterAll
+    public static void closeServer() throws InterruptedException, ExecutionException, IOException {
+        executor.submit(() -> client.done("ten"));
+        String result = executor.submit(() -> client.receiveResponse()).get();
+        JsonObject jsonResult = new JsonObject();
+        jsonResult.add("id", json.toJsonTree("ten"));
+        jsonResult.add("response", json.toJsonTree("bye"));
+        BufferedReader reader = new BufferedReader(new CharArrayReader(result.toCharArray()));
+        String finalResult = reader.readLine();
+
+        Assertions.assertEquals(json.toJson(jsonResult), finalResult);
+    }
+
     @Test
     public void initializeServerConnectClient() throws InterruptedException {
-        client = new WikiMediatorClient(LOCAL_HOST, PORT);
+        client2 = new WikiMediatorClient(LOCAL_HOST, PORT);
         int[] intArgs = {5};
         client.sendRequest(null, "search for Desire Path", "search", intArgs, "Desire Path");
         client.receiveResponse();
@@ -43,9 +64,17 @@ public class Task4Tests {
 
     @Test
     public void sendMultipleRequestsNoTimeout() throws InterruptedException, ExecutionException {
+        /* Clear cache contents */
+        if (allRequestsFile.exists()) {
+            allRequestsFile.delete();
+        }
+        if (countMapFile.exists()) {
+            countMapFile.delete();
+        }
+
         client = new WikiMediatorClient(LOCAL_HOST, PORT);
-        // intArgs[0] is number of results to return
-        // intArgs[1] is timeWindow
+        /* intArgs[0] is number of results to return
+         intArgs[1] is timeWindow */
         int[] intArgs = {5, 3};
         ArrayList<String> results = new ArrayList<>();
         executor.submit(() ->
@@ -86,12 +115,15 @@ public class Task4Tests {
                 client.sendRequest(null, "window2",
                         "windowedPeakLoad", intArgEmpty));
         results.add(executor.submit(() -> client.receiveResponse()).get());
-        executor.submit(() ->
-                client.done("ten"));
-        results.add(executor.submit(() -> client.receiveResponse()).get());
         Assertions.assertTrue(results.get(0).contains("Desire path"));
         Assertions.assertTrue(results.get(1).contains("Barack Obama"));
         Assertions.assertTrue(results.get(2).contains("Nine months later, he was named"));
+        Assertions.assertEquals(
+                json.fromJson(results.get(7), JsonObject.class)
+                        .get("response").getAsString(), Integer.toString(6));
+        Assertions.assertEquals(
+                json.fromJson(results.get(8), JsonObject.class)
+                        .get("response").getAsString(), Integer.toString(9));
     }
 
     //TODO: test with long timeout

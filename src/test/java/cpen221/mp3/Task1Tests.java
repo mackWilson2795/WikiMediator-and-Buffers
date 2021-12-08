@@ -67,19 +67,4 @@ public class Task1Tests {
         } catch (InterruptedException | ExecutionException ignored){
         }
     }
-
-    @Test
-    public void task1EmptyBuffer() {
-        FSFTBuffer<TestBufferable> emptyBuffer = new FSFTBuffer<>(0, 1000);
-        Assertions.assertFalse(emptyBuffer.put(first));
-        Assertions.assertFalse(emptyBuffer.touch("first"));
-        Assertions.assertFalse(emptyBuffer.update(first));
-        Assertions.assertThrows(NotFoundException.class, () -> emptyBuffer.get("first"));
-    }
-
-    // try {
-    //            TimeUnit.SECONDS.sleep(1);
-    //        } catch (InterruptedException ie) {
-    //            ie.printStackTrace();
-    //        }
 }
