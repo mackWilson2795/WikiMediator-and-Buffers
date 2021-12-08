@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeoutException;
 
 public class Task3DirectTests {
 
@@ -82,13 +83,7 @@ public class Task3DirectTests {
     }
 
     @Test
-    public void task3TimedTest() {
-        // TODO: hehre
-    }
-
-    static class RunnableForTiming implements Runnable {
-        public void run() {
-
-        }
+    public void task3ShortestPath() throws TimeoutException {
+        wikiMediator1.shortestPath("Philosophy", "Barack Obama", 60);
     }
 }

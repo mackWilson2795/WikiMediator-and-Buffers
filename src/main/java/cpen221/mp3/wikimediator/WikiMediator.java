@@ -66,6 +66,7 @@ public class WikiMediator {
      *                          be cached in the wikiMediator after getPage is
      *                          called.
      */
+
     public WikiMediator(int capacity, int stalenessInterval) {
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
         read();
