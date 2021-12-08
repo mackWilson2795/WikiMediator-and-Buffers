@@ -3,6 +3,7 @@ package cpen221.mp3.fsftbuffer;
 import cpen221.mp3.fsftbuffer.Exceptions.NotFoundException;
 import cpen221.mp3.wikimediator.Bufferable.Bufferable;
 
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -17,26 +18,13 @@ public class FSFTBuffer<T extends Bufferable> {
     /* Conversion factor between milliseconds and seconds */
     public static final int MS_CONVERSION = 1000;
 
-    // TODO: we can make timeout + capacity > 0 as preconditions
 
-    /* TODO: not a real abstraction function just me trying to understand variables
-        Abstraction Function:
-        lookUpMap: id -> T
-        cache: T's in order
-        timeOutMap: ids -> staleness time (last time touched)
-        workingOn: for thread safety? current list of things being modified right now?
-     */
 
-    /* TODO: fake rep invariant
-        For all String1s in lookUpMap, there should be a String2 in timeOutMap
-        such that: String1 = String2.
-        For all Integer
-     */
 
     /* Thread Safety Argument:
         This class is thread safe because of the following implementations:
         1. Immutable variables:
-        DSIZE, DTIMEOUT,MS_CONVERSION, capacity, and timeout are immutable constants that are thread safe.
+        DSIZE, DTIMEOUT, MS_CONVERSION, capacity, and timeout are immutable constants that are thread safe.
         Thus, since their states do not change, the usage of these by multiple threads at the same time will
         not lead to any read and write errors since they can't be written to.
         These are immutable constants since they use final and are primitive data types.
@@ -59,7 +47,59 @@ public class FSFTBuffer<T extends Bufferable> {
     private final ConcurrentHashMap<String, Long> timeOutMap = new ConcurrentHashMap<>();
     private final int capacity;
     private final int timeout;
-    // TODO: how about storing a "lastCleanedAt" volatile variable - if we just cleaned it (exactly 0s) don't run clean
+
+    /*
+     * Abstraction Function :
+     *
+     * lookUpMap = maps the id of every object in the FSFT Buffer to
+     *             the object itself
+     *
+     * timeOutMap = maps the id of every object in the FSFT Buffer to
+     *              the time in seconds at which the object will time out
+     *
+     * LRUQueue = a first in first out queue of the ids of every object currently
+     *            in the FSFT Buffer
+     * */
+
+    /*
+     * Abstraction Function :
+     *
+     * lookUpMap = maps the id of every object currently in the FSFT Buffer to
+     *             the object itself
+     *
+     * timeOutMap = maps the id of every object currently in the FSFT Buffer to
+     *              the time in seconds at which the object will time out
+     *
+     * LRUQueue = a first in first out queue of the ids of every object currently
+     *            in the FSFT Buffer
+     * */
+
+    /*
+     * Rep - Invariant :
+     *
+     * lookUpMap.keySet() should always be equal to timeOutMap.keySet() which
+     * should only ever contain every entry found in LRUQueue. Every time in
+     * timeOutMap.values() should be greater than the current time in seconds
+     * */
+
+    public boolean checkRep() {
+        clean();
+        if (!lookUpMap.keySet().equals(timeOutMap.keySet())){
+            return false;
+        }
+        HashSet comparison = new HashSet(LRUQueue);
+        if (!lookUpMap.keySet().equals(comparison)){
+            return false;
+        }
+        for (String id: lookUpMap.keySet()) {
+            if(timeOutMap.get(id) < (System.currentTimeMillis() / MS_CONVERSION)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
 
     /**
      * Create a buffer with a fixed capacity and a timeout value.
@@ -152,8 +192,9 @@ public class FSFTBuffer<T extends Bufferable> {
     }
 
 
-    /** TODO: temp spec
-     * Removes all expired entries in the FSFTBuffer.
+    /**
+     * Helper function, removes all entries in the FSFT Buffer that have
+     * timed out
      */
     private void clean() {
 
@@ -168,6 +209,11 @@ public class FSFTBuffer<T extends Bufferable> {
         }
     }
 
+    /**
+     * Helper function, removes the least recently used object from
+     * the FSFT Buffer
+     */
+
     private void removeLRU() {
 
         synchronized(this) {
@@ -178,6 +224,11 @@ public class FSFTBuffer<T extends Bufferable> {
             }
         }
     }
+
+    /**
+     * Helper function, adds an object to the FSFT Buffer
+     * @param t the object to be added
+     */
 
     private void add(T t) {
         LRUQueue.addLast(t.id());
