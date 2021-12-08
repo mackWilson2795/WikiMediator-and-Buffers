@@ -231,7 +231,7 @@ public class WikiMediator {
     }
 
 
-    private HashSet<String> findAdjacents(String pageTitle){
+    private TreeSet<String> findAdjacents(String pageTitle){
 
         TreeSet<String> adjPages = new TreeSet<String>();
 

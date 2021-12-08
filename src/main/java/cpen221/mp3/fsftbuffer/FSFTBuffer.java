@@ -34,20 +34,24 @@ public class FSFTBuffer<T extends Bufferable> {
         For all Integer
      */
 
-    /* TODO: Thread Safety Argument
+    /* Thread Safety Argument:
+        This class is thread safe because of the following implementations:
         1. Immutable variables:
         DSIZE, DTIMEOUT,MS_CONVERSION, capacity, and timeout are immutable constants that are thread safe.
+        Thus, since their states do not change, the usage of these by multiple threads at the same time will
+        not lead to any read and write errors since they can't be written to.
+        These are immutable constants since they use final and are primitive data types.
         2. Thread Safety Data Types:
-        why? lookUpMap, LRUDeque, and timeoutMap use thread safe ADT's that ensure thread safety.
+        lookUpMap, LRUDeque, and timeoutMap use thread safe ADT's.
+        LookUpMap and timeoutMap use a ConcurrentHashMap, LRUDeque uses LinkedBlockingDeque.
+        The coupling of thread Safety Data types and Synchronization leads to thread safety,
+        ensuring that there are no read-write or write-write data races.
         3. Synchronization:
-        All methods are synchronized
+        The put, get, update and touch methods are all synchronized using the object as a lock.
+        Thus, these methods are unable to run at the same time, ensuring that there are
+        no read-write or write-write data races.
+        This class is thread safe because of overall use of Immutable Variables, Thread Safe ADT's, and Synchronization.
 
-        What are the main problems:
-        1. statics are being used
-        2. quick fix - wrappers for collections
-        3. Large problem - cleaner function - could we use a state variable - maybe but unlikely
-        4. Due to cleaner function, synchronization of overall methods is best start
-        5. Synchronization of get, put, update, touch - either state variable or java.concurrent add on
 
      */
 
@@ -62,7 +66,8 @@ public class FSFTBuffer<T extends Bufferable> {
      * Objects in the buffer that have not been refreshed within the
      * timeout period are removed from the cache.
      *
-     * @param capacity the number of objects the buffer can hold
+     * @param capacity the number of objects the buffer can hold,
+     *                 capacity must be greater than zero
      * @param timeout  the duration, in seconds, an object should
      *                 be in the buffer before it times out
      */
@@ -105,8 +110,7 @@ public class FSFTBuffer<T extends Bufferable> {
      * @param id the identifier of the object to "touch"
      * @return true if successful and false otherwise
      */
-    synchronized public boolean touch(String id) { //second point of interest
-        // clean();
+    synchronized public boolean touch(String id) {
         if (lookUpMap.containsKey(id) && timeOutMap.get(id) < System.currentTimeMillis() / MS_CONVERSION) {
             timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) +
                 timeout);
@@ -138,9 +142,7 @@ public class FSFTBuffer<T extends Bufferable> {
      * @param t the object to update
      * @return true if successful and false otherwise
      */
-    synchronized public boolean update(T t) { //point of interest
-
-        //clean();
+    synchronized public boolean update(T t) {
         if (timeOutMap.containsKey(t.id()) && timeOutMap.get(t.id()) < (System.currentTimeMillis() / MS_CONVERSION)) {
             lookUpMap.put(t.id(), t);
             timeOutMap.put(t.id(), (System.currentTimeMillis() / MS_CONVERSION) + timeout);
@@ -156,7 +158,7 @@ public class FSFTBuffer<T extends Bufferable> {
     private void clean() {
         for (String id : timeOutMap.keySet()) {
             long time = System.currentTimeMillis() / MS_CONVERSION;
-            if (timeOutMap.get(id) >= time) {
+            if (timeOutMap.get(id) <= time) {
                 timeOutMap.remove(id);
                 LRUQueue.remove(lookUpMap.remove(id));
             }
@@ -164,9 +166,11 @@ public class FSFTBuffer<T extends Bufferable> {
     }
 
     private void removeLRU() {
-        String id = LRUQueue.removeFirst();
-        lookUpMap.remove(id);
-        timeOutMap.remove(id);
+        if(LRUQueue.size() > 0) {
+            String id = LRUQueue.removeFirst();
+            lookUpMap.remove(id);
+            timeOutMap.remove(id);
+        }
     }
 
     private void add(T t) {
