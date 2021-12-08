@@ -18,6 +18,7 @@ public class WikiMediator {
     private static final int MS_CONVERSION = 1000;
     private static final int DEFAULT_TIME_WINDOW_IN_SECONDS = 30;
 
+    private final File localDir = new File("local");
     private final File allRequestsFile = new File("local/allRequests.txt");
     private final File countMapFile = new File("local/countMap.txt");
     private final Wiki wiki = new Wiki.Builder().build();
@@ -56,11 +57,25 @@ public class WikiMediator {
         return false;
     }
 
+    /**
+     * Creates a new instance of WikiMediator.
+     * @param capacity the capacity of the cache in the WikiMediator
+     * @param stalenessInterval the amount of time in seconds a wiki page will
+     *                          be cached in the wikiMediator after getPage is
+     *                          called.
+     */
     public WikiMediator(int capacity, int stalenessInterval) {
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
         read();
     }
 
+    /**
+     * Finds a list of Wiki page titles matching the given query
+     *
+     * @param query the given query
+     * @param limit the size of the list to be returned
+     * @return a list of wiki page titles, of size limit, that match the given query
+     */
     public List<String> search(String query, int limit){
         synchronized (allRequests) {
             allRequests.add(new SearchRequest(System.currentTimeMillis() / MS_CONVERSION, query, limit));
@@ -79,6 +94,14 @@ public class WikiMediator {
         return pageTitles;
     }
 
+    /**
+     * Finds the text of the Wiki page corresponding to the given page title
+     *
+     * @param pageTitle The given page title
+     * @return a String containing the text of the Wikipedia
+     *         page matching the given String pageTitle. If the
+     *         page does not exist, returns an empty String.
+     */
     public String getPage(String pageTitle){
         synchronized (allRequests) {
             if (allRequests.contains(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle))){
@@ -106,6 +129,14 @@ public class WikiMediator {
         }
     }
 
+    /**
+     * Creates a list of the nth most frequent queries used in getPage and search, ordered from
+     * most to least frequent
+     *
+     * @param limit the given size of the list
+     * @return a list of the most frequent queries used in getPage and search,
+     *         of size limit, ordered from most to least frequent
+     */
     public List<String> zeitgeist(int limit){
 
         synchronized (allRequests) {
@@ -119,21 +150,16 @@ public class WikiMediator {
         return trim(queries, limit);
     }
 
-    private ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
-        ArrayList<String> reverseOrdered = toCount.entrySet().stream().
-                sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
-                .collect(Collectors.toCollection(ArrayList::new));
-        Collections.reverse(reverseOrdered);
-        return reverseOrdered;
-    }
-
-    public List<String> trim(ArrayList<String> toTrim, int desiredSize) {
-        if (toTrim.size() > desiredSize){
-            return toTrim.subList(0, desiredSize-1);
-        }
-        return toTrim;
-    }
-
+    /**
+     * Creates a list of the nth most frequent queries used in getPage and search in the past specified
+     * amount of time, the list is ordered from most to least frequent
+     *
+     * @param timeLimitInSeconds the specified amount of time in seconds
+     * @param maxItems the given size of the list
+     * @returna list of the most frequent queries used in getPage and search
+     *          in the past timeLimitInSeconds, of size limit, ordered from
+     *          most to least frequent
+     */
     public List<String> trending(int timeLimitInSeconds, int maxItems) {
 
         synchronized (allRequests) {
@@ -147,6 +173,13 @@ public class WikiMediator {
         return trim(count(append(requestsInTimeWindow)), maxItems);
     }
 
+    /**
+     * Finds the maximum amount of requests made in a given time window
+     *
+     * @param timeWindowInSeconds the given time window in seconds
+     * @return an integer corresponding to the maximum amount of requests made in any time window
+     *         of size timeWindowInSeconds.
+     */
     public int windowedPeakLoad(int timeWindowInSeconds) {
         long referenceTime = 0;
         int timeWindow = timeWindowInSeconds;
@@ -159,7 +192,6 @@ public class WikiMediator {
             requestList.addAll(allRequests);
         }
 
-        // TODO: always one request?
         referenceTime = requestList.peek().getTimeInSeconds();
         window.addLast(requestList.pop());
 
@@ -189,15 +221,29 @@ public class WikiMediator {
         return maxSize;
     }
 
+    /**
+     * Finds the maximum amount of requests made in a 30-second time window
+     *
+     * @return an integer corresponding to the maximum amount of requests made
+     * in any 30-second time window
+     */
     public int windowedPeakLoad(){
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
 
+    /**
+     * Prepares an instance of a WikiMediator to be terminated, by
+     * saving the data collected by the WikiMediator to a local Directory
+     */
     public void close() {
         this.write();
     }
 
-    public void write() {
+    /**
+     * Helper function which writes the data collected by the WikiMediator to a
+     * local Directory
+     */
+    private void write() {
         Gson json = new Gson();
         try {
             Files.deleteIfExists(Path.of(allRequestsFile.getPath()));
@@ -223,7 +269,11 @@ public class WikiMediator {
         }
     }
 
-    private void read() { //file reader how does Gson handle nested objects, parser Api\
+    /**
+     * Helper function, restores the WikiMediator data from a local Directory to a new instance
+     * of WikiMediator
+     */
+    private void read() {
         Gson json = new Gson();
 
         try {
@@ -255,6 +305,12 @@ public class WikiMediator {
         }
     }
 
+    /**
+     * Helper function which parses a given JsonObject into a request object
+     * @param next the given JsonObject
+     *
+     * @return a request object
+     */
     private Request parseRequest(JsonObject next) {
         JsonArray queriesJson = next.getAsJsonArray("queries");
         Long timeInSeconds = next.get("timeInSeconds").getAsLong();
@@ -277,6 +333,14 @@ public class WikiMediator {
         }
     }
 
+    /**
+     * Helper function which takes in a set of requests and populates a map, which maps
+     * the queries used in getPage and Search, to a number representing the number of times
+     * getPage or Search are called using that specific query
+     *
+     * @param requests the given set of requests
+     * @return the populated map
+     */
     private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
         ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
         for (Request request : requests) {
@@ -292,4 +356,34 @@ public class WikiMediator {
         }
         return keepCount;
     }
+
+    /**
+     * Helper function which trims a given list from its current size to the given size.
+     *
+     * @param toTrim the given list
+     * @param desiredSize the given size
+     * @return the trimmed list
+     */
+    public List<String> trim(ArrayList<String> toTrim, int desiredSize) {
+        if (toTrim.size() > desiredSize){
+            return toTrim.subList(0, desiredSize-1);
+        }
+        return toTrim;
+    }
+
+    /**
+     * Helper function which produces an ordered list of keys from a map in descending order
+     * according to the value of their keys in the given map.
+     *
+     * @param toCount the given map
+     * @return the list of ordered keys
+     */
+    private ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
+        ArrayList<String> reverseOrdered = toCount.entrySet().stream().
+                sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
+                .collect(Collectors.toCollection(ArrayList::new));
+        Collections.reverse(reverseOrdered);
+        return reverseOrdered;
+    }
+
 }
