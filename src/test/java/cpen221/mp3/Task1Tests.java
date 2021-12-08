@@ -1,7 +1,7 @@
 package cpen221.mp3;
 
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
-import cpen221.mp3.fsftbuffer.NotFoundException;
+import cpen221.mp3.fsftbuffer.Exceptions.NotFoundException;
 import cpen221.mp3.fsftbuffer.TestBufferable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;

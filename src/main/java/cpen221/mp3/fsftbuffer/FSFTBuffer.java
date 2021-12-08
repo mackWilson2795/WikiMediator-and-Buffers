@@ -1,10 +1,9 @@
 package cpen221.mp3.fsftbuffer;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import cpen221.mp3.fsftbuffer.Exceptions.NotFoundException;
+import cpen221.mp3.wikimediator.Bufferable.Bufferable;
+
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class FSFTBuffer<T extends Bufferable> {

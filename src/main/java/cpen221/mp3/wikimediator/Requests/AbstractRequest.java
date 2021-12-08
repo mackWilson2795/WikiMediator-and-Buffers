@@ -13,23 +13,62 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
     private final transient ArrayList<String> queries = new ArrayList<>();
     private final Long timeInSeconds;
 
+    /*
+     * Abstraction Function :
+     *
+     * requestType = the type of request this object represents
+     *
+     * queries = The list of all arguments used for the request
+     *
+     * timeInSeconds = the time in seconds at which the request was processed
+     * */
+
+    /**
+     * Default constructor for a Request, creates a request of a given type
+     * occurring at a given time
+     *
+     * @param timeInSeconds the time in seconds at which the request was processed
+     * @param requestType the type of the request
+     */
     public AbstractRequest (Long timeInSeconds, RequestType requestType) {
         this.timeInSeconds = timeInSeconds;
         this.requestType = requestType;
     }
 
+    /**
+     * Retrieves the time at which this request was processed
+     *
+     * @return the time in seconds at which this request was processed
+     */
     public Long getTimeInSeconds(){
         return timeInSeconds;
     }
 
+    /**
+     * Retrieves the type of this request
+     *
+     * @return a RequestType specifying the type of this request
+     */
     public RequestType getType(){
         return requestType;
     }
 
+    /**
+     * Retrieves the arguments given to the method call for this request
+     *
+     * @return a List of arguments given to the method call for this request
+     */
     public List<String> getQueries() {
         return queries;
     }
 
+    /**
+     * Compares another Request to this Request
+     *
+     * @param o the Request to be compared to this Request
+     * @return 1 if this Request is greater than or equal to Request o,
+     *         -1 if this Request is less than Request o
+     */
     @Override
     public int compareTo(@NotNull Request o) {
         if (this.getTimeInSeconds().compareTo(o.getTimeInSeconds()) == 0){

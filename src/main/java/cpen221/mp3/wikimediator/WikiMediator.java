@@ -9,7 +9,8 @@ import java.util.stream.Collectors;
 
 import com.google.gson.*;
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
-import cpen221.mp3.fsftbuffer.NotFoundException;
+import cpen221.mp3.fsftbuffer.Exceptions.NotFoundException;
+import cpen221.mp3.wikimediator.Bufferable.WikiPage;
 import cpen221.mp3.wikimediator.Requests.*;
 import org.fastily.jwiki.core.*;
 
@@ -41,7 +42,7 @@ public class WikiMediator {
      * */
 
     /*
-     * Rep Invariant :
+     * Rep - Invariant :
      *
      *                  The sum of the values stored in countMap should always be
      *                  equal to the total number of SearchRequest and PageRequest
