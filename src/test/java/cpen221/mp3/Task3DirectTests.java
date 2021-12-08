@@ -58,7 +58,7 @@ public class Task3DirectTests {
         for (int i = 0; i < 10; i++) {
             wikiMediator1.search(Integer.toString(i), 1);
             if ((i % 2) == 0) {
-                for (int j = i; j >= 0; j--) {
+                for (int j = i; j >= 2; j = j - 2) {
                     wikiMediator1.search(Integer.toString(j), 1);
                 }
             }
