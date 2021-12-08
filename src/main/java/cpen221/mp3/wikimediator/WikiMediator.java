@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import com.google.gson.*;
@@ -356,6 +357,53 @@ public class WikiMediator {
             }
         }
         return keepCount;
+    }
+
+
+    public List<String> shortestPath(String pageTitle1, String pageTitle2, int timeout) throws TimeoutException {
+
+
+        List<ArrayList<String>> queue = new ArrayList<ArrayList<String>>();
+        List<String> path = new ArrayList<String>();
+        Set<String> adjacentPages;
+        ArrayList<String> tempList = new ArrayList<String>();
+        String node;
+
+
+
+        queue.add(new ArrayList<String>());
+        queue.get(0).add(pageTitle1);
+
+        while (queue.size() > 0) {
+            path = queue.get(0);
+            queue.remove(0);
+            node = path.get(path.size()-1);
+
+            if(node.compareTo(pageTitle2) == 0){
+                return path;
+            }
+
+            adjacentPages = new HashSet<String>();
+            adjacentPages = findAdjacents(node);
+
+            for(String page: adjacentPages){
+                tempList = new ArrayList<String>(path);
+                tempList.add(page);
+                queue.add(tempList);
+            }
+
+        }
+
+        return null;
+    }
+
+
+    private TreeSet<String> findAdjacents(String pageTitle){
+
+        TreeSet<String> adjPages = new TreeSet<String>();
+
+
+        return null;
     }
 
     /**
