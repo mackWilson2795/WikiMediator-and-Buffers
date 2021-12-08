@@ -4,7 +4,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import com.google.gson.*;
@@ -264,11 +264,65 @@ public class WikiMediator {
 
 
     public int windowedPeakLoad(){
-        // TODO: remove
-        // synchronized (allRequests) {
-        //     allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, DEFAULT_TIME_WINDOW_IN_SECONDS));
-        // }
-
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
+
+    public List<String> shortestPath(String pageTitle1, String pageTitle2, int timeout) throws TimeoutException {
+        ExecutorService timedExecutor = Executors.newSingleThreadExecutor();
+        ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(32);
+
+
+        Set <String> visitedPages = new HashSet<>();
+
+        ConcurrentLinkedDeque<ArrayList<String>> queue = new ConcurrentLinkedDeque<>();
+
+        queue.add(new ArrayList<>());
+        queue.peek().add(pageTitle1);
+
+        while (queue.size() > 0) {
+
+            ArrayList<String> tempList;
+            List<String> currentPath;
+            List<String> adjacentPages;
+            currentPath = queue.pop();
+            String node = currentPath.get(currentPath.size() - 1);
+
+            synchronized (visitedPages){
+                visitedPages.add(node);
+            }
+
+            if (node.equals(pageTitle2)) {
+                return currentPath;
+            }
+
+            adjacentPages = findAdjacents(node);
+
+            synchronized (visitedPages) {
+                for (String page : adjacentPages) {
+                    if (!visitedPages.contains(page)) {
+                        tempList = new ArrayList<>(currentPath);
+                        tempList.add(page);
+                        queue.add(tempList);
+                    }
+                }
+            }
+        }
+        return new ArrayList<>();
+    }
+
+
+    private List<String> findAdjacents(String pageTitle) {
+        return wiki.getLinksOnPage(pageTitle);
+    }
+
+    //private class shortestPathDriver implements Callable {
+//
+    //    public shortestPathDriver(){
+//
+    //    }
+//
+    //    public List<String> call(){
+//
+    //    }
+    //}
 }
