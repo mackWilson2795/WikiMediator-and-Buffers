@@ -18,9 +18,9 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
      *
      * requestType = the type of request this object represents
      *
-     * queries = The list of all arguments used for the request
+     * queries = The list of all arguments used for this request
      *
-     * timeInSeconds = the time in seconds at which the request was processed
+     * timeInSeconds = the time in seconds at which this request was processed
      * */
 
     /**
@@ -54,9 +54,9 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
     }
 
     /**
-     * Retrieves the arguments given to the method call for this request
+     * Retrieves the arguments used for this request
      *
-     * @return a List of arguments given to the method call for this request
+     * @return a List of arguments used for this request
      */
     public List<String> getQueries() {
         return queries;

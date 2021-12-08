@@ -7,6 +7,12 @@ public class ShortestPathRequest extends AbstractRequest {
 
     private final ArrayList<String> queries = new ArrayList<>(3);
 
+    /*
+     * Abstraction Function :
+     *
+     * queries = The list of all arguments used for this request
+     * */
+
     public ShortestPathRequest(Long timeInSeconds, String pageTitle1, String pageTitle2, int timeOut) {
         super(timeInSeconds, RequestType.SHORTEST_PATH);
         queries.add(pageTitle1);
@@ -14,6 +20,11 @@ public class ShortestPathRequest extends AbstractRequest {
         queries.add(String.valueOf(timeOut));
     }
 
+    /**
+     * Retrieves the arguments used for this request
+     *
+     * @return a List of arguments used for this request
+     */
     @Override
     public List<String> getQueries() {
         return queries;

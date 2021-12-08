@@ -1,7 +1,5 @@
 package cpen221.mp3;
 
-import cpen221.mp3.fsftbuffer.FSFTBuffer;
-import cpen221.mp3.fsftbuffer.TestBufferable;
 import cpen221.mp3.wikimediator.Requests.*;
 import cpen221.mp3.wikimediator.WikiMediator;
 import org.junit.jupiter.api.Assertions;
@@ -10,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
