@@ -1,16 +1,12 @@
 package cpen221.mp3;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import cpen221.mp3.fsftbuffer.BufferThreadTest;
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
-import cpen221.mp3.fsftbuffer.NotFoundException;
-import cpen221.mp3.fsftbuffer.TestBufferable;
+import cpen221.mp3.wikimediator.Bufferable.TestBufferable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
