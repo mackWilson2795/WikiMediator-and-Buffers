@@ -27,111 +27,39 @@ public class WikiMediator {
     private final SortedSet<Request> allRequests = new TreeSet<>();
 
     /*
-    * Abstraction Function :
-    *
-    * countMap
-    * */
+     * Abstraction Function :
+     *
+     * countMap = The set of all strings used in search and getPage methods,
+     *            where each string is mapped to a number representing the
+     *            total amount of times it has been used in search and getPage.
+     *            This map will store the information pertaining to any
+     *            wikiMediator instantiated while maintaining the same Local
+     *            Directory.
+     *
+     * allRequests = The set of all requests made to any wikiMediators made while
+     *                maintaining the same Local Directory.
+     * */
 
     /*
-    Rep Invariant :
+     * Rep Invariant :
+     *
+     *                  The sum of the values stored in countMap should always be
+     *                  equal to the total number of SearchRequest and PageRequest
+     *                  objects stored in allRequests.
+     * */
 
-     */
+    public boolean checkRep() {
+        int totalCountMap = countMap.values().stream().mapToInt(integer -> integer).sum();
+        int totalCountSet = (int) allRequests.stream().filter(request -> request.getType() == RequestType.SEARCH || request.getType() == RequestType.GET_PAGE).count();
+        if(totalCountSet == totalCountMap){
+            return true;
+        }
+        return false;
+    }
 
     public WikiMediator(int capacity, int stalenessInterval) {
         cache = new FSFTBuffer<>(capacity, stalenessInterval);
         read();
-    }
-
-    private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
-        ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
-        for (Request request : requests) {
-            if (request.getType() == RequestType.GET_PAGE || request.getType() == RequestType.SEARCH) {
-                String query = request.getQueries().get(0);
-                if (keepCount.containsKey(query)) {
-                    Integer count = keepCount.get(query);
-                    keepCount.put(query, ++count);
-                } else {
-                    keepCount.put(query, 1);
-                }
-            }
-        }
-        return keepCount;
-    }
-
-    private void read() { //file reader how does Gson handle nested objects, parser Api\
-        Gson json = new Gson();
-        
-        try {
-            if (allRequestsFile.exists()) {
-                BufferedReader allRequestsReader = new BufferedReader(new FileReader(allRequestsFile));
-                JsonArray allRequestsJsonArray = JsonParser.parseReader(allRequestsReader).getAsJsonArray();
-
-                Iterator<JsonElement> iterator = allRequestsJsonArray.iterator();
-
-                while (iterator.hasNext()) {
-                    JsonObject next = iterator.next().getAsJsonObject();
-                    allRequests.add(parseRequest(next));
-                }
-            }
-            if (countMapFile.exists()) { 
-                BufferedReader countMapReader = new BufferedReader(new FileReader(countMapFile));
-                countMap.putAll(json.fromJson(countMapReader, ConcurrentHashMap.class));
-                // TODO: mapping to double
-            }
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-   //    SortedSet<Request> requests = new TreeSet<>();
-   //    Gson json = new Gson();
-   //    String bye = json.fromJson("Hello", String.class);
-   //    return new TreeSet<Request>();
-    }
-    private Request parseRequest(JsonObject next) {
-        JsonArray queriesJson = next.getAsJsonArray("queries");
-        Long timeInSeconds = next.get("timeInSeconds").getAsLong();
-        switch (next.get("requestType").getAsString()) {
-            case "SEARCH" :
-                return new SearchRequest(timeInSeconds,
-                        queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
-            case "SHORTEST_PATH" :
-                return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).toString(),
-                        queriesJson.get(1).getAsString(), queriesJson.get(2).getAsInt());
-            case "ZEITGEIST" :
-                return new ZeitgeistRequest(timeInSeconds, queriesJson.get(0).getAsInt());
-            case "TRENDING" :
-                return new TrendingRequest(timeInSeconds,queriesJson.get(0).getAsInt(),
-                        queriesJson.get(1).getAsInt());
-            case "GET_PAGE" :
-                return new PageRequest(timeInSeconds, queriesJson.get(0).getAsString());
-            default :
-                return new WindowedPeakLoadRequest(timeInSeconds, queriesJson.get(0).getAsInt());
-        }
-    }
-
-    public void write() {
-        Gson json = new Gson();
-        try {
-            Files.deleteIfExists(Path.of(allRequestsFile.getPath()));
-            Files.deleteIfExists(Path.of(countMapFile.getPath()));
-
-            allRequestsFile.createNewFile();
-            countMapFile.createNewFile();
-
-            FileWriter allRequestWriter =  new FileWriter(allRequestsFile.getPath());
-            FileWriter countMapWriter =  new FileWriter(countMapFile.getPath());
-            
-            String allRequestAsJSON = json.toJson(allRequests);
-            String countMapAsJSON = json.toJson(countMap);
-
-            allRequestWriter.write(allRequestAsJSON);
-            countMapWriter.write(countMapAsJSON);
-
-            allRequestWriter.close();
-            countMapWriter.close();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-            throw new RuntimeException();
-        }
     }
 
     public List<String> search(String query, int limit){
@@ -238,7 +166,7 @@ public class WikiMediator {
 
         while(!requestList.isEmpty() && (requestList.peek().getTimeInSeconds().longValue() - referenceTime) < timeWindowInSeconds){
             window.addLast(requestList.pop());
-        } //TODO: find a way to not repeat
+        }
 
         maxSize = window.size();
 
@@ -262,7 +190,6 @@ public class WikiMediator {
         return maxSize;
     }
 
-
     public int windowedPeakLoad(){
         // TODO: remove
         // synchronized (allRequests) {
@@ -271,4 +198,98 @@ public class WikiMediator {
 
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
+
+    public void close() {
+        this.write();
+    }
+
+    private void write() {
+        Gson json = new Gson();
+        try {
+            Files.deleteIfExists(Path.of(allRequestsFile.getPath()));
+            Files.deleteIfExists(Path.of(countMapFile.getPath()));
+
+            allRequestsFile.createNewFile();
+            countMapFile.createNewFile();
+
+            FileWriter allRequestWriter =  new FileWriter(allRequestsFile.getPath());
+            FileWriter countMapWriter =  new FileWriter(countMapFile.getPath());
+
+            String allRequestAsJSON = json.toJson(allRequests);
+            String countMapAsJSON = json.toJson(countMap);
+
+            allRequestWriter.write(allRequestAsJSON);
+            countMapWriter.write(countMapAsJSON);
+
+            allRequestWriter.close();
+            countMapWriter.close();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            throw new RuntimeException();
+        }
+    }
+
+    private void read() { //file reader how does Gson handle nested objects, parser Api\
+        Gson json = new Gson();
+
+        try {
+            if (allRequestsFile.exists()) {
+                BufferedReader allRequestsReader = new BufferedReader(new FileReader(allRequestsFile));
+                JsonArray allRequestsJsonArray = JsonParser.parseReader(allRequestsReader).getAsJsonArray();
+
+                Iterator<JsonElement> iterator = allRequestsJsonArray.iterator();
+
+                while (iterator.hasNext()) {
+                    JsonObject next = iterator.next().getAsJsonObject();
+                    allRequests.add(parseRequest(next));
+                }
+            }
+            if (countMapFile.exists()) {
+                BufferedReader countMapReader = new BufferedReader(new FileReader(countMapFile));
+                countMap.putAll(json.fromJson(countMapReader, ConcurrentHashMap.class));
+                // TODO: mapping to double
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+
+    private Request parseRequest(JsonObject next) {
+        JsonArray queriesJson = next.getAsJsonArray("queries");
+        Long timeInSeconds = next.get("timeInSeconds").getAsLong();
+        switch (next.get("requestType").getAsString()) {
+            case "SEARCH" :
+                return new SearchRequest(timeInSeconds,
+                        queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
+            case "SHORTEST_PATH" :
+                return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).toString(),
+                        queriesJson.get(1).getAsString(), queriesJson.get(2).getAsInt());
+            case "ZEITGEIST" :
+                return new ZeitgeistRequest(timeInSeconds, queriesJson.get(0).getAsInt());
+            case "TRENDING" :
+                return new TrendingRequest(timeInSeconds,queriesJson.get(0).getAsInt(),
+                        queriesJson.get(1).getAsInt());
+            case "GET_PAGE" :
+                return new PageRequest(timeInSeconds, queriesJson.get(0).getAsString());
+            default :
+                return new WindowedPeakLoadRequest(timeInSeconds, queriesJson.get(0).getAsInt());
+        }
+    }
+
+    private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
+        ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
+        for (Request request : requests) {
+            if (request.getType() == RequestType.GET_PAGE || request.getType() == RequestType.SEARCH) {
+                String query = request.getQueries().get(0);
+                if (keepCount.containsKey(query)) {
+                    Integer count = keepCount.get(query);
+                    keepCount.put(query, ++count);
+                } else {
+                    keepCount.put(query, 1);
+                }
+            }
+        }
+        return keepCount;
+    }
+
 }

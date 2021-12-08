@@ -36,7 +36,7 @@ public class Tests {
     @Test
     public void writeTest() {
         WikiMediator wiki = new WikiMediator(10, 10);
-        wiki.write();
+        //wiki.write();
     }
 
     @Test
@@ -69,6 +69,6 @@ public class Tests {
                 Integer.toString(6), Integer.toString(4),
                 Integer.toString(2));
         Assertions.assertEquals(expected, wikiMediator1.zeitgeist(5));
-        wikiMediator1.write();
+        //wikiMediator1.write();
     }
 }
