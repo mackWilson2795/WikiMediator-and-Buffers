@@ -13,9 +13,6 @@ public class BufferThreadTest implements Runnable{
     private Object T;
     private Boolean isPut;
 
-    public BufferThreadTest(FSFTBuffer tester){
-        this.tester = tester;
-    }
     public BufferThreadTest(){
         tester = new FSFTBuffer();
     }
@@ -26,8 +23,7 @@ public class BufferThreadTest implements Runnable{
         try{
             T = tester.get("third");
         }
-        catch (NotFoundException e){
-
+        catch (NotFoundException ignored){
         }
         tester.put(first);
         tester.touch("second");
@@ -52,26 +48,15 @@ public class BufferThreadTest implements Runnable{
             T = tester.get("second");
         }
         catch (NotFoundException e){
-
         }
         tester.put(first);
         tester.touch("second");
         tester.update(first);
         tester.put(third);
         tester.put(second);
-
-    }
-
-    public FSFTBuffer getBuffer(){
-        return tester;
-    }
-
-    public Object getT(){
-        return T;
     }
 
     public boolean getIsPut(){
         return isPut;
     }
-
 }

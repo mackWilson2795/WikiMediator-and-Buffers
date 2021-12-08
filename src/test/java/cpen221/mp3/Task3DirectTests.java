@@ -1,5 +1,6 @@
 package cpen221.mp3;
 
+import cpen221.mp3.wikimediator.Bufferable.WikiPage;
 import cpen221.mp3.wikimediator.Requests.*;
 import cpen221.mp3.wikimediator.WikiMediator;
 import org.junit.jupiter.api.Assertions;
@@ -49,6 +50,8 @@ public class Task3DirectTests {
         String pageData = wikiMediator1.getPage(desirePathTitle);
         Assertions.assertEquals(true, searchResult.contains(desirePathTitle));
         Assertions.assertEquals(true, pageData.contains(desirePath));
+        WikiPage page = new WikiPage("title", "text");
+        page.checkRep();
     }
 
     @Test
@@ -84,6 +87,6 @@ public class Task3DirectTests {
 
     @Test
     public void task3ShortestPath() throws TimeoutException {
-        wikiMediator1.shortestPath("Philosophy", "Barack Obama", 60);
+        wikiMediator1.shortestPath("PCBD2", "Apoptosis", 180);
     }
 }

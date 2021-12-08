@@ -25,7 +25,7 @@ public class WikiPage implements Bufferable {
 
     public boolean checkRep() {
         Wiki wiki = new Wiki.Builder().build();
-        if(wiki.getPageText(title).equals(text)) {
+        if (wiki.getPageText(title).equals(text)) {
             return true;
         }
         return false;

@@ -152,8 +152,7 @@ public class FSFTBuffer<T extends Bufferable> {
      */
     synchronized public boolean touch(String id) {
         if (lookUpMap.containsKey(id) && timeOutMap.get(id) < System.currentTimeMillis() / MS_CONVERSION) {
-            timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) +
-                timeout);
+            timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) + timeout);
             return true;
         }
         return false;

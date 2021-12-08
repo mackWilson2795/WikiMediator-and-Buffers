@@ -5,13 +5,11 @@ import com.google.gson.JsonObject;
 import cpen221.mp3.server.WikiMediatorClient;
 import cpen221.mp3.server.WikiMediatorServer;
 import cpen221.mp3.wikimediator.WikiMediator;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.CharArrayReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -24,7 +22,6 @@ public class Task4Tests {
     public static ExecutorService executor;
     public static WikiMediatorServer server;
     public static WikiMediatorClient client;
-    public static WikiMediatorClient client2;
     public static Gson json = new Gson();
     private static final File allRequestsFile = new File("local/allRequests.txt");
     private static final File countMapFile = new File("local/countMap.txt");

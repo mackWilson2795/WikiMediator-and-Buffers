@@ -45,6 +45,7 @@ public class Tests {
             e.printStackTrace();
         }
     }
+
     @Test
     public void timeoutTest() throws ExecutionException, InterruptedException {
         client = new WikiMediatorClient(LOCAL_HOST, PORT);
@@ -67,5 +68,9 @@ public class Tests {
         JsonObject requestJson3 = json.fromJson(
                 executor.submit(() -> client.receiveResponse()).get(), JsonObject.class);
         Assertions.assertEquals("success", requestJson3.get("status").getAsString());
+        executor.submit(() ->
+                client.sendRequest(180L, "shortest path",
+                        "shortestPath", intArgs, "PCBD2", "Apoptosis"));
+        executor.submit(() -> client.receiveResponse()).get();
     }
 }

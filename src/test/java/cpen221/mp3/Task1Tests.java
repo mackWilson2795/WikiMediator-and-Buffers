@@ -46,10 +46,13 @@ public class Task1Tests {
     @Test
     public void task1RunAllMethods() {
         smallBuffer.put(first);
+        smallBuffer.touch("first");
+        smallBuffer.update(first);
         smallBuffer.put(second);
         smallBuffer.touch("first");
         smallBuffer.update(first);
         Assertions.assertEquals(false, smallBuffer.put(first));
+        smallBuffer.checkRep();
     }
 
     @Test
