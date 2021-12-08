@@ -31,14 +31,14 @@ public class Task3DirectTests {
 
     @BeforeAll
     public static void setupTests() {
-        wikiMediator1 = new WikiMediator(10, 30);
-        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         if (allRequestsFile.exists()) {
             allRequestsFile.delete();
         }
         if (countMapFile.exists()) {
             countMapFile.delete();
         }
+        wikiMediator1 = new WikiMediator(10, 30);
+        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Test

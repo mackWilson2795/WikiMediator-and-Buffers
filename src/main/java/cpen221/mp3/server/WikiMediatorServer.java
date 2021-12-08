@@ -17,9 +17,6 @@ public class WikiMediatorServer {
     private final WikiMediator wikiMediator;
     ExecutorService threadPoolExecutor;
     ExecutorService serverExecutor;
-    ExecutorService closingExecutor = Executors.newSingleThreadExecutor();
-    // TODO: create premade "success" and "failed" JsonObjects
-    // TODO: should not accept a new connection unless a thread is free
 
     /**
      * Start a server at a given port number, with the ability to process
@@ -79,14 +76,13 @@ public class WikiMediatorServer {
         Gson gson = new Gson();
         String nextLine;
 
-        // TODO: I want to try clean this up / maybe break some methods off
         try (
                 BufferedReader inputStream = new BufferedReader(new InputStreamReader
                         (socket.getInputStream()));
                 PrintWriter outputStream = new PrintWriter(new OutputStreamWriter
                         (socket.getOutputStream()));
              ) {
-            System.out.println("Client connected..."); // TODO: temp
+            System.out.println("Client connected...");
             while ((nextLine = inputStream.readLine()) != null) {
                 // Request -> JSON
                 JsonObject request = gson.fromJson(nextLine, JsonObject.class);
@@ -98,14 +94,11 @@ public class WikiMediatorServer {
                 if (Objects.equals(request.get("type").getAsString(), "stop")){
                     response.add("response", gson.toJsonTree("bye"));
                     outputStream.print(gson.toJson(response) + "\n");
-                    // closingExecutor.execute(this::close);
                     Thread closingThread = new Thread(close());
                     closingThread.start();
                     return;
                 }
 
-                // Read JSON
-                // Handle request
                 try {
                     result  = handleRequest(request);
                 } catch (TimeoutException | ExecutionException | InterruptedException  e) {
@@ -117,15 +110,10 @@ public class WikiMediatorServer {
                         throw new RuntimeException(e);
                     }
                 }
-
-                // Receive request
-                // Write JSON response
                 if (result != null){
                     response.add("status", gson.toJsonTree("success"));
                     response.add("response", gson.toJsonTree(result));
                 }
-
-                // Send response
                 outputStream.print(gson.toJson(response) + "\n");
                 outputStream.flush();
             }
@@ -148,6 +136,12 @@ public class WikiMediatorServer {
         return new Runnable() {
             @Override
             public void run() {
+                wikiMediator.close();
+                try {
+                    serverSocket.close();
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
                 try {
                     threadPoolExecutor.shutdown();
                     if (!threadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)){ // TODO: consider time to wait
@@ -165,15 +159,6 @@ public class WikiMediatorServer {
                 } catch (InterruptedException ignored) {
                     serverExecutor.shutdownNow();
                 }
-
-                wikiMediator.close();
-
-                try {
-                    serverSocket.close();
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                }
-                // TODO: implement close() here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             }
         };
     }
@@ -185,12 +170,11 @@ public class WikiMediatorServer {
             this.request = request;
         }
 
-        public Object call() { // TODO: TimeoutException
+        public Object call() throws TimeoutException {
             String requestType = request.get("type").getAsString();
             Object result = null; // TODO: null? idk...
 
             switch (requestType) {
-                // TODO: double check spelling of all entries etc...
                 case "search":
                     result = wikiMediator.search(
                             request.get("query").getAsString(),
@@ -218,7 +202,9 @@ public class WikiMediatorServer {
                     }
                     break;
                 case "shortestPath":
-                    break; // TODO: implement this !!!
+                    result = wikiMediator.shortestPath(request.get("pageTitle1").getAsString(),
+                            request.get("pageTitle2").getAsString(), request.get("timeout").getAsInt());
+                    break;
             }
 
             return result;

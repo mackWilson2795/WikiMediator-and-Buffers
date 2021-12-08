@@ -106,9 +106,6 @@ public class WikiMediator {
      */
     public String getPage(String pageTitle){
         synchronized (allRequests) {
-            if (allRequests.contains(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle))){
-                int x = 2;
-            }
             allRequests.add(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle));
         }
         synchronized (countMap) {
@@ -300,7 +297,6 @@ public class WikiMediator {
                     countMap.put(key, nextVal);
                 }
                 countMapReader.close();
-                // TODO: mapping to double
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -434,5 +430,4 @@ public class WikiMediator {
         Collections.reverse(reverseOrdered);
         return reverseOrdered;
     }
-
 }

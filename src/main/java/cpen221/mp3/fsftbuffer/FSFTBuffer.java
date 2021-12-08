@@ -114,8 +114,8 @@ public class FSFTBuffer<T extends Bufferable> {
         if (lookUpMap.containsKey(id) && timeOutMap.get(id) < System.currentTimeMillis() / MS_CONVERSION) {
             timeOutMap.put(id, (System.currentTimeMillis() / MS_CONVERSION) +
                 timeout);
-            return true;
         }
+        return true;
         return false;
     }
 

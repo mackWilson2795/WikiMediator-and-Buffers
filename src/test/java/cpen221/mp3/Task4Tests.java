@@ -31,6 +31,13 @@ public class Task4Tests {
 
     @BeforeAll
     public static void setupTests() {
+        /* Clear cache contents */
+        if (allRequestsFile.exists()) {
+            allRequestsFile.delete();
+        }
+        if (countMapFile.exists()) {
+            countMapFile.delete();
+        }
         WikiMediator wm = new WikiMediator(24, 120);
         executor = Executors.newFixedThreadPool(12);
         try {
@@ -41,28 +48,8 @@ public class Task4Tests {
         }
     }
 
-    @AfterAll
-    public static void closeServer() throws InterruptedException, ExecutionException, IOException {
-
-     //   JsonObject jsonResult = new JsonObject();
-     //   jsonResult.add("id", json.toJsonTree("ten"));
-     //   jsonResult.add("response", json.toJsonTree("bye"));
-     //   BufferedReader reader = new BufferedReader(new CharArrayReader(result.toCharArray()));
-     //   String finalResult = reader.readLine();
-//
-     //   Assertions.assertEquals(json.toJson(jsonResult), finalResult);
-    }
-
 @Test
     public void sendMultipleRequestsNoTimeout() throws InterruptedException, ExecutionException {
-        /* Clear cache contents */
-        if (allRequestsFile.exists()) {
-            allRequestsFile.delete();
-        }
-        if (countMapFile.exists()) {
-            countMapFile.delete();
-        }
-
         client = new WikiMediatorClient(LOCAL_HOST, PORT);
         /* intArgs[0] is number of results to return
          intArgs[1] is timeWindow */
@@ -109,18 +96,12 @@ public class Task4Tests {
         Assertions.assertTrue(results.get(0).contains("Desire path"));
         Assertions.assertTrue(results.get(1).contains("Barack Obama"));
         Assertions.assertTrue(results.get(2).contains("Nine months later, he was named"));
-        Assertions.assertEquals(
-                json.fromJson(results.get(7), JsonObject.class)
-                        .get("response").getAsString(), Integer.toString(6));
-        Assertions.assertEquals(
-                json.fromJson(results.get(8), JsonObject.class)
-                        .get("response").getAsString(), Integer.toString(9));
+        Assertions.assertEquals(Integer.toString(6),
+                json.fromJson(results.get(7), JsonObject.class).get("response").getAsString());
+        Assertions.assertEquals(Integer.toString(9),
+                json.fromJson(results.get(8), JsonObject.class).get("response").getAsString());
 
         executor.submit(() -> client.done("ten"));
         String result = executor.submit(() -> client.receiveResponse()).get();
     }
-
-    //TODO: test with long timeout
-    //TODO: test with short timeout
-    // weird bug??
 }
