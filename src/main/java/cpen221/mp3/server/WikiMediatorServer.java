@@ -94,11 +94,12 @@ public class WikiMediatorServer {
                 response.add("id", request.get("id"));
 
                 // Catch "stop"
-                if (Objects.equals(request.get("type").toString(), "stop")){
+                if (Objects.equals(request.get("type").getAsString(), "stop")){
                     response.add("response", gson.toJsonTree("bye"));
-                    outputStream.println(gson.toJson(response));
+                    outputStream.print(gson.toJson(response) + "\n");
                     Thread closingThread = new Thread(close());
                     closingThread.start();
+                    return;
                 }
 
                 // Read JSON
@@ -154,6 +155,8 @@ public class WikiMediatorServer {
                     threadPoolExecutor.shutdownNow();
                 }
 
+                wikiMediator.close();
+
                 try {
                     serverExecutor.shutdown();
                     if (!serverExecutor.awaitTermination(2, TimeUnit.SECONDS)){
@@ -168,8 +171,6 @@ public class WikiMediatorServer {
                 } catch (IOException ioe) {
                     ioe.printStackTrace();
                 }
-
-                // wikiMediator.close();
                 // TODO: implement close() here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             }
         };
@@ -210,10 +211,8 @@ public class WikiMediatorServer {
                     if (request.has("timeWindowInSeconds")) {
                         result = wikiMediator.windowedPeakLoad(
                                 request.get("timeWindowInSeconds").getAsInt());
-                        System.out.println("timeWindowTest");
                     } else {
                         result = wikiMediator.windowedPeakLoad();
-                        System.out.println("notimeWindowTest");
                     }
                     break;
                 case "shortestPath":

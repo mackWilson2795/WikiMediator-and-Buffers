@@ -38,6 +38,16 @@ public class WikiMediatorClient {
         return response;
     }
 
+    public void done(String id) {
+        Gson json = new Gson();
+        JsonObject request = new JsonObject();
+        request.add("id", json.toJsonTree(id));
+        request.add("type", json.toJsonTree("stop"));
+        System.out.println(request);
+        outputStream.print(request + "\n");
+        outputStream.flush();
+    }
+
     public void sendRequest(Long timeout, String id, String type, int[] intArgs,
                             String... strings){
         Gson json = new Gson();

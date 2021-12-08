@@ -3,6 +3,7 @@ package cpen221.mp3;
 import cpen221.mp3.server.WikiMediatorClient;
 import cpen221.mp3.server.WikiMediatorServer;
 import cpen221.mp3.wikimediator.WikiMediator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +86,12 @@ public class Task4Tests {
                 client.sendRequest(null, "window2",
                         "windowedPeakLoad", intArgEmpty));
         results.add(executor.submit(() -> client.receiveResponse()).get());
+        executor.submit(() ->
+                client.done("ten"));
+        results.add(executor.submit(() -> client.receiveResponse()).get());
+        Assertions.assertTrue(results.get(0).contains("Desire path"));
+        Assertions.assertTrue(results.get(1).contains("Barack Obama"));
+        Assertions.assertTrue(results.get(2).contains("Nine months later, he was named"));
     }
 
     //TODO: test with long timeout

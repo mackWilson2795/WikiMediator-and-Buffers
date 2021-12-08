@@ -12,12 +12,10 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
     private final RequestType requestType;
     private final transient ArrayList<String> queries = new ArrayList<>();
     private final Long timeInSeconds;
-    private final int identifier;
 
     public AbstractRequest (Long timeInSeconds, RequestType requestType) {
         this.timeInSeconds = timeInSeconds;
         this.requestType = requestType;
-        this.identifier = requestNumber++;
     }
 
     public Long getTimeInSeconds(){
@@ -32,10 +30,6 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
         return queries;
     }
 
-    public int getIdentifier() {
-        return identifier;
-    }
-
     @Override
     public int compareTo(@NotNull Request o) {
         if (this.getTimeInSeconds().compareTo(o.getTimeInSeconds()) == 0){
@@ -44,21 +38,4 @@ public abstract class AbstractRequest implements Request, Comparable<Request> {
             return this.getTimeInSeconds().compareTo(o.getTimeInSeconds());
         }
     }
-
-    // @Override
-    // public boolean equals(Object o) {
-    //     if (!(o instanceof Request)) {
-    //         return false;
-    //     }
-    //     Request request = (Request) o;
-    //     if (this.getIdentifier() == request.getIdentifier()) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
-//
-    // @Override
-    // public int hashCode() {
-    //     return identifier;
-    // }
 }

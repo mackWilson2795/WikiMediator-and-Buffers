@@ -18,7 +18,6 @@ public class WikiMediator {
     private static final int MS_CONVERSION = 1000;
     private static final int DEFAULT_TIME_WINDOW_IN_SECONDS = 30;
 
-    private final File localDir = new File("local");
     private final File allRequestsFile = new File("local/allRequests.txt");
     private final File countMapFile = new File("local/countMap.txt");
     private final Wiki wiki = new Wiki.Builder().build();
@@ -191,11 +190,6 @@ public class WikiMediator {
     }
 
     public int windowedPeakLoad(){
-        // TODO: remove
-        // synchronized (allRequests) {
-        //     allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION, DEFAULT_TIME_WINDOW_IN_SECONDS));
-        // }
-
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
 
@@ -243,10 +237,17 @@ public class WikiMediator {
                     JsonObject next = iterator.next().getAsJsonObject();
                     allRequests.add(parseRequest(next));
                 }
+                allRequestsReader.close();
             }
             if (countMapFile.exists()) {
                 BufferedReader countMapReader = new BufferedReader(new FileReader(countMapFile));
-                countMap.putAll(json.fromJson(countMapReader, ConcurrentHashMap.class));
+                HashMap<String, Double> tempMap =
+                        new HashMap<String, Double>(json.fromJson(countMapReader, HashMap.class));
+                for (String key : tempMap.keySet()) {
+                    Integer nextVal = tempMap.get(key).intValue();
+                    countMap.put(key, nextVal);
+                }
+                countMapReader.close();
                 // TODO: mapping to double
             }
         } catch (IOException ioe) {
@@ -291,5 +292,4 @@ public class WikiMediator {
         }
         return keepCount;
     }
-
 }

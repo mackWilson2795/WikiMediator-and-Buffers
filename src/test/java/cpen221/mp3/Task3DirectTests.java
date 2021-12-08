@@ -2,11 +2,13 @@ package cpen221.mp3;
 
 import cpen221.mp3.fsftbuffer.FSFTBuffer;
 import cpen221.mp3.fsftbuffer.TestBufferable;
+import cpen221.mp3.wikimediator.Requests.*;
 import cpen221.mp3.wikimediator.WikiMediator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,11 +29,19 @@ public class Task3DirectTests {
             "have consistently documented that impacts on soil" +
             " and vegetation occur rapidly with initial use of desire paths.";
     private static String desirePathTitle = "Desire path";
+    private static final File allRequestsFile = new File("local/allRequests.txt");
+    private static final File countMapFile = new File("local/countMap.txt");
 
     @BeforeAll
     public static void setupTests() {
         wikiMediator1 = new WikiMediator(10, 30);
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        if (allRequestsFile.exists()) {
+            allRequestsFile.delete();
+        }
+        if (countMapFile.exists()) {
+            countMapFile.delete();
+        }
     }
 
     @Test
@@ -60,8 +70,22 @@ public class Task3DirectTests {
     }
 
     @Test
-    public void task3TimedTest() {
+    public void directRequestObjects() {
+        ReferenceRequest referenceRequest = new ReferenceRequest(1L);
+        referenceRequest.getQueries();
+        TrendingRequest trendingRequest = new TrendingRequest(1L, 3,3);
+        trendingRequest.getQueries();
+        WindowedPeakLoadRequest windowedPeakLoadRequest = new WindowedPeakLoadRequest(1L, 1);
+        windowedPeakLoadRequest.getQueries();
+        ZeitgeistRequest zeitgeistRequest = new ZeitgeistRequest(1L, 1);
+        zeitgeistRequest.getQueries();
+        ShortestPathRequest shortestPathRequest = new ShortestPathRequest(1L, "string1", "string 2", 1);
+        shortestPathRequest.getQueries();
+    }
 
+    @Test
+    public void task3TimedTest() {
+        // TODO: hehre
     }
 
     static class RunnableForTiming implements Runnable {
