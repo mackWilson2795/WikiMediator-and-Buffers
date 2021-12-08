@@ -84,9 +84,4 @@ public class Task3DirectTests {
         ShortestPathRequest shortestPathRequest = new ShortestPathRequest(1L, "string1", "string 2", 1);
         shortestPathRequest.getQueries();
     }
-
-    @Test
-    public void task3ShortestPath() throws TimeoutException {
-        wikiMediator1.shortestPath("PCBD2", "Apoptosis", 180);
-    }
 }

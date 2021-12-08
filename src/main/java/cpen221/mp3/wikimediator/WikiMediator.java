@@ -5,6 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -52,8 +55,10 @@ public class WikiMediator {
 
     public boolean checkRep() {
         int totalCountMap = countMap.values().stream().mapToInt(integer -> integer).sum();
-        int totalCountSet = (int) allRequests.stream().filter(request -> request.getType() == RequestType.SEARCH || request.getType() == RequestType.GET_PAGE).count();
-        if(totalCountSet == totalCountMap){
+        int totalCountSet = (int) allRequests.stream().filter(
+            request -> request.getType() == RequestType.SEARCH ||
+                request.getType() == RequestType.GET_PAGE).count();
+        if (totalCountSet == totalCountMap) {
             return true;
         }
         return false;
@@ -61,7 +66,8 @@ public class WikiMediator {
 
     /**
      * Creates a new instance of WikiMediator.
-     * @param capacity the capacity of the cache in the WikiMediator
+     *
+     * @param capacity          the capacity of the cache in the WikiMediator
      * @param stalenessInterval the amount of time in seconds a wiki page will
      *                          be cached in the wikiMediator after getPage is
      *                          called.
@@ -79,12 +85,13 @@ public class WikiMediator {
      * @param limit the size of the list to be returned
      * @return a list of wiki page titles, of size limit, that match the given query
      */
-    public List<String> search(String query, int limit){
+    public List<String> search(String query, int limit) {
         synchronized (allRequests) {
-            allRequests.add(new SearchRequest(System.currentTimeMillis() / MS_CONVERSION, query, limit));
+            allRequests
+                .add(new SearchRequest(System.currentTimeMillis() / MS_CONVERSION, query, limit));
         }
         synchronized (countMap) {
-            if(countMap.containsKey(query)) {
+            if (countMap.containsKey(query)) {
                 int count = countMap.get(query);
                 countMap.put(query, ++count);
             } else {
@@ -93,7 +100,7 @@ public class WikiMediator {
         }
 
         ArrayList<String> pageTitles = new ArrayList<>();
-        pageTitles = wiki.search(query,limit);
+        pageTitles = wiki.search(query, limit);
         return pageTitles;
     }
 
@@ -102,15 +109,15 @@ public class WikiMediator {
      *
      * @param pageTitle The given page title
      * @return a String containing the text of the Wikipedia
-     *         page matching the given String pageTitle. If the
-     *         page does not exist, returns an empty String.
+     * page matching the given String pageTitle. If the
+     * page does not exist, returns an empty String.
      */
-    public String getPage(String pageTitle){
+    public String getPage(String pageTitle) {
         synchronized (allRequests) {
             allRequests.add(new PageRequest(System.currentTimeMillis() / MS_CONVERSION, pageTitle));
         }
         synchronized (countMap) {
-            if(countMap.containsKey(pageTitle)) {
+            if (countMap.containsKey(pageTitle)) {
                 int count = countMap.get(pageTitle);
                 countMap.put(pageTitle, ++count);
             } else {
@@ -135,12 +142,13 @@ public class WikiMediator {
      *
      * @param limit the given size of the list
      * @return a list of the most frequent queries used in getPage and search,
-     *         of size limit, ordered from most to least frequent
+     * of size limit, ordered from most to least frequent
      */
-    public List<String> zeitgeist(int limit){
+    public List<String> zeitgeist(int limit) {
 
         synchronized (allRequests) {
-            allRequests.add(new ZeitgeistRequest(System.currentTimeMillis() / MS_CONVERSION, limit));
+            allRequests
+                .add(new ZeitgeistRequest(System.currentTimeMillis() / MS_CONVERSION, limit));
         }
 
         ArrayList<String> queries;
@@ -155,20 +163,24 @@ public class WikiMediator {
      * amount of time, the list is ordered from most to least frequent
      *
      * @param timeLimitInSeconds the specified amount of time in seconds
-     * @param maxItems the given size of the list
+     * @param maxItems           the given size of the list
      * @returna list of the most frequent queries used in getPage and search
-     *          in the past timeLimitInSeconds, of size limit, ordered from
-     *          most to least frequent
+     * in the past timeLimitInSeconds, of size limit, ordered from
+     * most to least frequent
      */
     public List<String> trending(int timeLimitInSeconds, int maxItems) {
 
         synchronized (allRequests) {
-            allRequests.add(new TrendingRequest(System.currentTimeMillis() / MS_CONVERSION, timeLimitInSeconds, maxItems));
+            allRequests.add(
+                new TrendingRequest(System.currentTimeMillis() / MS_CONVERSION, timeLimitInSeconds,
+                    maxItems));
         }
 
         SortedSet<Request> requestsInTimeWindow;
         synchronized (allRequests) { //inclusive?
-            requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(System.currentTimeMillis() / MS_CONVERSION - timeLimitInSeconds), new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION)));
+            requestsInTimeWindow = allRequests.subSet(new ReferenceRequest(
+                    System.currentTimeMillis() / MS_CONVERSION - timeLimitInSeconds),
+                new ReferenceRequest((System.currentTimeMillis() / MS_CONVERSION)));
         }
         return trim(count(append(requestsInTimeWindow)), maxItems);
     }
@@ -178,7 +190,7 @@ public class WikiMediator {
      *
      * @param timeWindowInSeconds the given time window in seconds
      * @return an integer corresponding to the maximum amount of requests made in any time window
-     *         of size timeWindowInSeconds.
+     * of size timeWindowInSeconds.
      */
     public int windowedPeakLoad(int timeWindowInSeconds) {
         long referenceTime = 0;
@@ -188,21 +200,24 @@ public class WikiMediator {
         LinkedList<Request> requestList = new LinkedList<>();
         synchronized (allRequests) {
             allRequests.add(new WindowedPeakLoadRequest(System.currentTimeMillis() / MS_CONVERSION,
-                    timeWindowInSeconds));
+                timeWindowInSeconds));
             requestList.addAll(allRequests);
         }
 
         referenceTime = requestList.peek().getTimeInSeconds();
         window.addLast(requestList.pop());
 
-        while(!requestList.isEmpty() && (requestList.peek().getTimeInSeconds().longValue() - referenceTime) < timeWindowInSeconds){
+        while (!requestList.isEmpty() &&
+            (requestList.peek().getTimeInSeconds().longValue() - referenceTime) <
+                timeWindowInSeconds) {
             window.addLast(requestList.pop());
         }
 
         maxSize = window.size();
 
-        while(!requestList.isEmpty()){
-            while(!window.isEmpty() && Objects.equals(window.peek().getTimeInSeconds(), referenceTime)) {
+        while (!requestList.isEmpty()) {
+            while (!window.isEmpty() &&
+                Objects.equals(window.peek().getTimeInSeconds(), referenceTime)) {
                 window.pop();
             }
             if (!window.isEmpty()) {
@@ -211,11 +226,12 @@ public class WikiMediator {
                 referenceTime = requestList.peek().getTimeInSeconds();
             }
 
-            while(!requestList.isEmpty() && requestList.peek().getTimeInSeconds() - referenceTime < timeWindow){
-               window.addLast(requestList.pop());
+            while (!requestList.isEmpty() &&
+                requestList.peek().getTimeInSeconds() - referenceTime < timeWindow) {
+                window.addLast(requestList.pop());
             }
             if (window.size() > maxSize) {
-               maxSize = window.size();
+                maxSize = window.size();
             }
         }
         return maxSize;
@@ -227,7 +243,7 @@ public class WikiMediator {
      * @return an integer corresponding to the maximum amount of requests made
      * in any 30-second time window
      */
-    public int windowedPeakLoad(){
+    public int windowedPeakLoad() {
         return windowedPeakLoad(DEFAULT_TIME_WINDOW_IN_SECONDS);
     }
 
@@ -252,8 +268,8 @@ public class WikiMediator {
             allRequestsFile.createNewFile();
             countMapFile.createNewFile();
 
-            FileWriter allRequestWriter =  new FileWriter(allRequestsFile.getPath());
-            FileWriter countMapWriter =  new FileWriter(countMapFile.getPath());
+            FileWriter allRequestWriter = new FileWriter(allRequestsFile.getPath());
+            FileWriter countMapWriter = new FileWriter(countMapFile.getPath());
 
             String allRequestAsJSON = json.toJson(allRequests);
             String countMapAsJSON = json.toJson(countMap);
@@ -278,8 +294,10 @@ public class WikiMediator {
 
         try {
             if (allRequestsFile.exists()) {
-                BufferedReader allRequestsReader = new BufferedReader(new FileReader(allRequestsFile));
-                JsonArray allRequestsJsonArray = JsonParser.parseReader(allRequestsReader).getAsJsonArray();
+                BufferedReader allRequestsReader =
+                    new BufferedReader(new FileReader(allRequestsFile));
+                JsonArray allRequestsJsonArray =
+                    JsonParser.parseReader(allRequestsReader).getAsJsonArray();
 
                 Iterator<JsonElement> iterator = allRequestsJsonArray.iterator();
 
@@ -292,7 +310,7 @@ public class WikiMediator {
             if (countMapFile.exists()) {
                 BufferedReader countMapReader = new BufferedReader(new FileReader(countMapFile));
                 HashMap<String, Double> tempMap =
-                        new HashMap<String, Double>(json.fromJson(countMapReader, HashMap.class));
+                    new HashMap<String, Double>(json.fromJson(countMapReader, HashMap.class));
                 for (String key : tempMap.keySet()) {
                     Integer nextVal = tempMap.get(key).intValue();
                     countMap.put(key, nextVal);
@@ -306,28 +324,28 @@ public class WikiMediator {
 
     /**
      * Helper function which parses a given JsonObject into a request object
-     * @param next the given JsonObject
      *
+     * @param next the given JsonObject
      * @return a request object
      */
     private Request parseRequest(JsonObject next) {
         JsonArray queriesJson = next.getAsJsonArray("queries");
         Long timeInSeconds = next.get("timeInSeconds").getAsLong();
         switch (next.get("requestType").getAsString()) {
-            case "SEARCH" :
+            case "SEARCH":
                 return new SearchRequest(timeInSeconds,
-                        queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
-            case "SHORTEST_PATH" :
+                    queriesJson.get(0).getAsString(), queriesJson.get(1).getAsInt());
+            case "SHORTEST_PATH":
                 return new ShortestPathRequest(timeInSeconds, queriesJson.get(0).toString(),
-                        queriesJson.get(1).getAsString(), queriesJson.get(2).getAsInt());
-            case "ZEITGEIST" :
+                    queriesJson.get(1).getAsString(), queriesJson.get(2).getAsInt());
+            case "ZEITGEIST":
                 return new ZeitgeistRequest(timeInSeconds, queriesJson.get(0).getAsInt());
-            case "TRENDING" :
-                return new TrendingRequest(timeInSeconds,queriesJson.get(0).getAsInt(),
-                        queriesJson.get(1).getAsInt());
-            case "GET_PAGE" :
+            case "TRENDING":
+                return new TrendingRequest(timeInSeconds, queriesJson.get(0).getAsInt(),
+                    queriesJson.get(1).getAsInt());
+            case "GET_PAGE":
                 return new PageRequest(timeInSeconds, queriesJson.get(0).getAsString());
-            default :
+            default:
                 return new WindowedPeakLoadRequest(timeInSeconds, queriesJson.get(0).getAsInt());
         }
     }
@@ -340,10 +358,12 @@ public class WikiMediator {
      * @param requests the given set of requests
      * @return the populated map
      */
-    private ConcurrentHashMap<String, Integer> append(SortedSet<Request> requests) { // make this return a new map and take in a set
+    private ConcurrentHashMap<String, Integer> append(
+        SortedSet<Request> requests) { // make this return a new map and take in a set
         ConcurrentHashMap<String, Integer> keepCount = new ConcurrentHashMap<>();
         for (Request request : requests) {
-            if (request.getType() == RequestType.GET_PAGE || request.getType() == RequestType.SEARCH) {
+            if (request.getType() == RequestType.GET_PAGE ||
+                request.getType() == RequestType.SEARCH) {
                 String query = request.getQueries().get(0);
                 if (keepCount.containsKey(query)) {
                     Integer count = keepCount.get(query);
@@ -359,13 +379,13 @@ public class WikiMediator {
     /**
      * Helper function which trims a given list from its current size to the given size.
      *
-     * @param toTrim the given list
+     * @param toTrim      the given list
      * @param desiredSize the given size
      * @return the trimmed list
      */
     public List<String> trim(ArrayList<String> toTrim, int desiredSize) {
-        if (toTrim.size() > desiredSize){
-            return toTrim.subList(0, desiredSize-1);
+        if (toTrim.size() > desiredSize) {
+            return toTrim.subList(0, desiredSize - 1);
         }
         return toTrim;
     }
@@ -379,49 +399,62 @@ public class WikiMediator {
      */
     private ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
         ArrayList<String> reverseOrdered = toCount.entrySet().stream().
-                sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
-                .collect(Collectors.toCollection(ArrayList::new));
+            sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
+            .collect(Collectors.toCollection(ArrayList::new));
         Collections.reverse(reverseOrdered);
         return reverseOrdered;
     }
 
-    public List<String> shortestPath(String pageTitle1, String pageTitle2, int timeout) throws TimeoutException {
-        //
-        // List<ArrayList<String>> queue = new ArrayList<ArrayList<String>>();
-        // List<String> path = new ArrayList<String>();
-        // Set<String> adjacentPages;
-        // ArrayList<String> tempList = new ArrayList<String>();
-        // String node;
-//
-//
-//
-        // queue.add(new ArrayList<String>());
-        // queue.get(0).add(pageTitle1);
-//
-        // while (queue.size() > 0) {
-        //     path = queue.get(0);
-        //     queue.remove(0);
-        //     node = path.get(path.size()-1);
-//
-        //     if(node.compareTo(pageTitle2) == 0){
-        //         return path;
-        //     }
-//
-        //     adjacentPages = new HashSet<String>();
-        //     adjacentPages = findAdjacents(node);
-//
-        //     for(String page: adjacentPages){
-        //         tempList = new ArrayList<String>(path);
-        //         tempList.add(page);
-        //         queue.add(tempList);
-        //     }
-// 
-        // }
-        return null;
+    public List<String> shortestPath(String pageTitle1, String pageTitle2, int timeout)
+        throws TimeoutException {
+
+        Long StartTime = System.currentTimeMillis() / 1000;
+        Long finalTime = StartTime + timeout;
+
+
+        Set<String> visitedPages = new HashSet<>();
+
+        ConcurrentLinkedDeque<ArrayList<String>> queue = new ConcurrentLinkedDeque<>();
+
+        queue.add(new ArrayList<>());
+        queue.peek().add(pageTitle1);
+
+        while (queue.size() > 0) {
+
+            if (finalTime <= (System.currentTimeMillis()/1000)){
+                throw new TimeoutException();
+            }
+            ArrayList<String> tempList;
+            List<String> currentPath;
+            List<String> adjacentPages;
+            currentPath = queue.pop();
+            String node = currentPath.get(currentPath.size() - 1);
+
+            synchronized (visitedPages) {
+                visitedPages.add(node);
+            }
+
+            if (node.equals(pageTitle2)) {
+                return currentPath;
+            }
+
+            adjacentPages = findAdjacents(node);
+
+            synchronized (visitedPages) {
+                for (String page : adjacentPages) {
+                    if (!visitedPages.contains(page)) {
+                        tempList = new ArrayList<>(currentPath);
+                        tempList.add(page);
+                        queue.add(tempList);
+                    }
+                }
+            }
+        }
+        return new ArrayList<>();
     }
 
 
-    private TreeSet<String> findAdjacents(String pageTitle){
-        return null;
+    private List<String> findAdjacents(String pageTitle) {
+        return wiki.getLinksOnPage(pageTitle);
     }
 }
