@@ -17,6 +17,7 @@ public class WikiMediatorServer {
     private final WikiMediator wikiMediator;
     ExecutorService threadPoolExecutor;
     ExecutorService serverExecutor;
+    ExecutorService closingExecutor = Executors.newSingleThreadExecutor();
     // TODO: create premade "success" and "failed" JsonObjects
     // TODO: should not accept a new connection unless a thread is free
 
@@ -97,6 +98,7 @@ public class WikiMediatorServer {
                 if (Objects.equals(request.get("type").getAsString(), "stop")){
                     response.add("response", gson.toJsonTree("bye"));
                     outputStream.print(gson.toJson(response) + "\n");
+                    // closingExecutor.execute(this::close);
                     Thread closingThread = new Thread(close());
                     closingThread.start();
                     return;
@@ -155,16 +157,16 @@ public class WikiMediatorServer {
                     threadPoolExecutor.shutdownNow();
                 }
 
-                wikiMediator.close();
-
                 try {
                     serverExecutor.shutdown();
-                    if (!serverExecutor.awaitTermination(2, TimeUnit.SECONDS)){
+                    if (!serverExecutor.awaitTermination(10, TimeUnit.SECONDS)){
                         serverExecutor.shutdownNow();
                     }
                 } catch (InterruptedException ignored) {
                     serverExecutor.shutdownNow();
                 }
+
+                wikiMediator.close();
 
                 try {
                     serverSocket.close();

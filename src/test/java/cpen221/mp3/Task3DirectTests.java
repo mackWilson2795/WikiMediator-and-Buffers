@@ -55,17 +55,17 @@ public class Task3DirectTests {
 
     @Test
     public void task3MoreRequestsThenZeitgeist() {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i <= 6; i++) {
             wikiMediator1.search(Integer.toString(i), 1);
             if ((i % 2) == 0) {
-                for (int j = i; j >= 2; j = j - 2) {
-                    wikiMediator1.search(Integer.toString(j), 1);
+                for (int j = i/2; j >= 0; j = j - 2) {
+                    wikiMediator1.search(Integer.toString(i), 1);
                 }
             }
         }
-        List<String> expected = List.of(Integer.toString(8),
-                Integer.toString(6), Integer.toString(4),
-                Integer.toString(2), Integer.toString(0));
+        List<String> expected = List.of(Integer.toString(6),
+                Integer.toString(4), Integer.toString(2),
+                Integer.toString(0));
         Assertions.assertEquals(expected, wikiMediator1.zeitgeist(5));
     }
 
@@ -79,6 +79,7 @@ public class Task3DirectTests {
         windowedPeakLoadRequest.getQueries();
         ZeitgeistRequest zeitgeistRequest = new ZeitgeistRequest(1L, 1);
         zeitgeistRequest.getQueries();
+        wikiMediator1.checkRep();
         ShortestPathRequest shortestPathRequest = new ShortestPathRequest(1L, "string1", "string 2", 1);
         shortestPathRequest.getQueries();
     }

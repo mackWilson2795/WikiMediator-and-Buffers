@@ -119,7 +119,7 @@ public class WikiMediator {
         return trim(queries, limit);
     }
 
-    public ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
+    private ArrayList<String> count(ConcurrentHashMap<String, Integer> toCount) {
         ArrayList<String> reverseOrdered = toCount.entrySet().stream().
                 sorted(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -197,7 +197,7 @@ public class WikiMediator {
         this.write();
     }
 
-    private void write() {
+    public void write() {
         Gson json = new Gson();
         try {
             Files.deleteIfExists(Path.of(allRequestsFile.getPath()));
