@@ -18,9 +18,10 @@ public class WikiMediatorServer {
     ExecutorService threadPoolExecutor;
     ExecutorService serverExecutor;
 
+
     /**
      * Start a server at a given port number, with the ability to process
-     * upto n requests concurrently.
+     * up to n requests concurrently.
      *
      * @param port the port number to bind the server to, 9000 <= {@code port} <= 9999
      * @param n the number of concurrent requests the server can handle, 0 < {@code n} <= 32
@@ -35,13 +36,15 @@ public class WikiMediatorServer {
         this.wikiMediator = wikiMediator;
     }
 
+    /**
+     * Activates the server and polls the client socket for new clients
+     */
     public void serve() {
         serverExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     while (true) {
-                        // TODO: figure out if I can only accept if there is room in the threadPool;
                         final Socket clientSocket = serverSocket.accept();
                         createNewThread(clientSocket);
                     }
@@ -53,6 +56,11 @@ public class WikiMediatorServer {
         });
     }
 
+    /**
+     * Makes connection to client at a given socket and begins handling request
+     *
+     * @param socket the given socket
+     */
     private void createNewThread (Socket socket) {
         threadPoolExecutor.execute(new Runnable() {
             @Override
@@ -72,6 +80,13 @@ public class WikiMediatorServer {
         });
     }
 
+    /**
+     * Deals with the client in a given socket and blocks until it receives a request
+     * from a client
+     *
+     * @param socket the given socket
+     * @throws IOException when the connection to the client cannot be established
+     */
     private void handleClient(Socket socket) throws IOException {
         Gson gson = new Gson();
         String nextLine;
@@ -120,6 +135,16 @@ public class WikiMediatorServer {
         }
     }
 
+    /**
+     * Handles a clients given request
+     *
+     * @param request the given request
+     * @return an Object representing the response to the client's request
+     * @throws TimeoutException If the request could not be handled in a time
+     *                          window specified by the client
+     * @throws ExecutionException If the thread was unable to execute properly
+     * @throws InterruptedException If the execution of the thread is interrupted
+     */
     private Object handleRequest(JsonObject request) throws
             TimeoutException, ExecutionException, InterruptedException {
         FutureTask<Object> future = new FutureTask<>(new RequestHandler(request));
@@ -132,33 +157,36 @@ public class WikiMediatorServer {
         return future.get();
     }
 
+    /**
+     * Creates a runnable Object to shut down all threads, close the server socket,
+     * and prepare WikiMediator to shut down
+     *
+     * @return the runnable Object
+     */
     private Runnable close() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                wikiMediator.close();
-                try {
-                    serverSocket.close();
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                }
-                try {
-                    threadPoolExecutor.shutdown();
-                    if (!threadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)){ // TODO: consider time to wait
-                        threadPoolExecutor.shutdownNow();
-                    }
-                } catch (InterruptedException ignored) {
+        return () -> {
+            wikiMediator.close();
+            try {
+                serverSocket.close();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+            try {
+                threadPoolExecutor.shutdown();
+                if (!threadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)){
                     threadPoolExecutor.shutdownNow();
                 }
+            } catch (InterruptedException ignored) {
+                threadPoolExecutor.shutdownNow();
+            }
 
-                try {
-                    serverExecutor.shutdown();
-                    if (!serverExecutor.awaitTermination(10, TimeUnit.SECONDS)){
-                        serverExecutor.shutdownNow();
-                    }
-                } catch (InterruptedException ignored) {
+            try {
+                serverExecutor.shutdown();
+                if (!serverExecutor.awaitTermination(10, TimeUnit.SECONDS)){
                     serverExecutor.shutdownNow();
                 }
+            } catch (InterruptedException ignored) {
+                serverExecutor.shutdownNow();
             }
         };
     }
@@ -166,13 +194,25 @@ public class WikiMediatorServer {
     class RequestHandler implements Callable<Object> {
         private final JsonObject request;
 
+        /**
+         * Creates a new RequestHandler object with a given JsonObject request
+         *
+         * @param request
+         */
         public RequestHandler(JsonObject request) {
             this.request = request;
         }
 
+        /**
+         * Helper Function, handles request and produces a result using WikiMediator
+         *
+         * @return and Object representing the result of handling the request
+         * @throws TimeoutException if the request could not be handled within a time
+         *         window specified by the client
+         */
         public Object call() throws TimeoutException {
             String requestType = request.get("type").getAsString();
-            Object result = null; // TODO: null? idk...
+            Object result = null;
 
             switch (requestType) {
                 case "search":
@@ -201,7 +241,7 @@ public class WikiMediatorServer {
                         result = wikiMediator.windowedPeakLoad();
                     }
                     break;
-                case "shortestPath":
+                default:
                     result = wikiMediator.shortestPath(request.get("pageTitle1").getAsString(),
                             request.get("pageTitle2").getAsString(), request.get("timeout").getAsInt());
                     break;
